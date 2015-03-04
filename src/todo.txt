@@ -1,0 +1,23 @@
+dans namespace PSO particle,
+éviter le BaseParticle, mais juste Base, éviter le préfixe du
+namespace ...
+
+
+
+class ABC_Params
+{
+public:
+  static int ColonySize() { return 50;};
+};
+
+c 'est inutilement chiant ; ça n'empêche pas de changer la taille en
+cours d'exécution;
+Donc plutôt dégager static et instancier ABC_Params;
+
+
+
+
+pas besoin de référence sur le prob, just des références sur les
+fonctions.... evaluate, lbound, ubound
+
+- rendre plus générique les "vecteurs" plutôt que forcer des double * 
