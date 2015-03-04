@@ -43,7 +43,7 @@ int main(int argc, char * argv[])
 				    [&count,dimension] (double * params) -> double { return evaluate(params, dimension, count);});
 
   algo.init();
-  algo.run();
+  //algo.run();
 
   std::cout << "Best minimum found :" << algo.getBest().getFValue() << " in " << algo.getEpoch() << " steps " << std::endl;
   std::cout << "Position of the optimum : " << algo.getBest() << std::endl;
