@@ -147,8 +147,8 @@ public:
         return algo.getEpoch();
     }
     
-    double step() {
-        return algo.step();
+    void step() {
+      algo.step();
     }
     
     void run(int verbose) {
