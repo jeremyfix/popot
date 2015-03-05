@@ -5,8 +5,8 @@ project (popot)
 set(POPOT_VERSION "2.12")
 set(PACKAGE_VERSION ${POPOT_VERSION})
 
-set( CMAKE_BUILD_TYPE Debug)
-#set( CMAKE_BUILD_TYPE Release)
+#set( CMAKE_BUILD_TYPE Debug)
+set( CMAKE_BUILD_TYPE Release)
 
 ###################################
 # Get required and optional library
