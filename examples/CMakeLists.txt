@@ -2,7 +2,7 @@
 include_directories (${CMAKE_SOURCE_DIR}/src)
 
 # Define our examples to compile
-set(USAGE_EXAMPLES example-000 example-001 example-002 example-003)
+set(USAGE_EXAMPLES example-000 example-001 example-002 example-003 example-benchmark)
 
 
 # loop over the list to compile them
