@@ -35,7 +35,7 @@ SET(DOC_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/share/doc/popot" CACHE PATH "The su
 # Define the path to install the pc pkg-config file
 SET(PKGCONFIG_INSTALL_DIR "${CMAKE_INSTALL_PREFIX}/lib${LIB_SUFFIX}/pkgconfig/" CACHE STRING "Base directory for pkgconfig files")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++0x" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++11" )
 
 ###################################
 # Pkg-config stuff
