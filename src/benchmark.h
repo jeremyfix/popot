@@ -10,10 +10,11 @@ namespace popot
      * it computes the mean error, std, etc... and various statistics on the performances
      * We suppose ALGO provides :
      * - a constructor without arguments, 
+     * - an init method
+     * - a run method
      * - a step method, 
      * - a getBestFitness method,
-     * - a getBestPosition method
-     * - a getEpoch() 
+     * - a fillBestPosition method
      * The Problem is also the one used as template for ALGO; It provides the stop method and the function 
      * evaluations counter
      *
@@ -141,20 +142,22 @@ namespace popot
 
 	    _trial_counter++;
 	    
-	    init_fitness = _algo.getBest().getFitness();
+	    init_fitness = _algo.getBestFitness();
 	    _algo.run();
 
 	    // Update the statistics
-	    sum_error += _algo.getBest().getFitness();
-	    sum_square_errors += _algo.getBest().getFitness()*_algo.getBest().getFitness();
+	    double best_fitness = _algo.getBestFitness();
+	    sum_error += best_fitness;
+	    sum_square_errors += best_fitness*best_fitness;
 	    sum_fe += _problem._count;
-	    sum_log += (log(_algo.getBest().getFitness()) - log(init_fitness))/double(_problem._count);
-	    if(_problem.has_failed(_algo.getBest().getFitness()))
+	    sum_log += (log(best_fitness) - log(init_fitness))/double(_problem._count);
+	    if(_problem.has_failed(best_fitness))
 	      _nb_failures++;
-	    if(i == 1 || _algo.getBest().getFitness() < _best_fitness)
+	    if(i == 1 || best_fitness < _best_fitness)
 	      {
-		_best_fitness = _algo.getBest().getFitness();
-		memcpy(_algo.getBest().getPosition().getValuesPtr(), _best_position, _problem._dimension*sizeof(double));
+		_best_fitness = best_fitness;
+		_algo.fillBestPosition(_best_position);
+		//memcpy(_algo.getBest().getPosition().getValuesPtr(), _best_position, _problem._dimension*sizeof(double));
 	      }
 	      
 	    // Eventually print the statistics

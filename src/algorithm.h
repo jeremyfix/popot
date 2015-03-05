@@ -23,6 +23,22 @@
 
 namespace popot
 {
+
+  namespace algorithm {
+
+    class Base {
+    public:
+      Base(void);
+      virtual ~Base(void);
+      virtual void step(void) = 0;
+      virtual void run(int verbose) = 0;
+      virtual double getBestFitness() const;
+      virtual void fillBestPosition(double *) const;
+    };
+
+  }
+
+
   namespace PSO
   {
     namespace algorithm
@@ -187,7 +203,7 @@ namespace popot
 	/**
 	 * One step of the swarm
 	 */
-	double step(void)
+	void step(void)
 	{
 	  // For each particle,
 	  // - Update the particle's velocity
@@ -290,7 +306,7 @@ namespace popot
 	    }
 	  
 	  epoch++;
-	  return _best_particle.getFitness() - old_fitness;
+	  //return _best_particle.getFitness() - old_fitness;
 	}
 
 	/**
@@ -636,19 +652,15 @@ namespace popot
 	  size_t other_source=0;
 	  for(size_t i = 0 ; i < _nb_onlookers ; ++i)
 	    {
-	      std::cout << "on looker " << i << "/" << _nb_onlookers << std::endl;
 	      // Select a source based on its fitness
 	      selected_source = popot::math::random_from_array(_probabilities);
 
 	      // Randomly select another source, different from the current source
-	      std::cout << "random select" << std::endl;
 	      other_source = (size_t) popot::math::uniform_random(0, _nb_employed);
 	      while(other_source == i)
 		other_source = (size_t) popot::math::uniform_random(0, _nb_employed);
 
-	      std::cout << "combine " << std::endl;
 	      _foodSources[selected_source].combine(_foodSources[other_source], _lbound, _ubound, _cost_function);
-	      std::cout << "ok" << std::endl;
 	      
 	    }
 	}
@@ -681,7 +693,6 @@ namespace popot
 	    _stop_criteria(stop_criteria), 
 	  _cost_function(cost_function)
 	{
-	  std::cout << "inint" << std::endl;
 	  // Initialize our populations
 	  _foodSources = new FoodSourceType[_nb_employed];
 	  for(size_t i = 0 ; i < _nb_employed ; ++i)
@@ -689,20 +700,16 @@ namespace popot
 
 	  // And the probabilities of their solutions
 	  _probabilities = new double[_nb_employed];
-	  std::cout << "done" << std::endl;
-
 	}
 
 	virtual ~Base(void)
 	{
-	  std::cout << "delete " << std::endl;
 	  delete[] _foodSources;
 	  delete[] _probabilities;
 	}
 
 	void init(void)
 	{
-	  std::cout << "inint2" << std::endl;
 	  // Initialize the positions and fitnesses
 	  // of the employed bees
 	  for(size_t i = 0 ; i < _nb_employed ; ++i)
@@ -714,7 +721,6 @@ namespace popot
 
 	  // Keep track of the best solution
 	  findBestSource();
-	  std::cout << "done" << std::endl;
 	}
 
 	int getEpoch(void)
@@ -724,21 +730,19 @@ namespace popot
 
 	void step(void)
 	{
-	  std::cout << "step" << std::endl;
 	  // Employed bees phase
 	  employedPhase();
-	  std::cout << "step1" << std::endl;
+
 	  // Onlooker bees phase
 	  onlookerPhase();
-std::cout << "step2" << std::endl;
+
 	  // Scout bees phase
 	  scoutPhase();
-std::cout << "step3" << std::endl;
+
 	  // Memorize the best solution
 	  findBestSource();
 
 	  _epoch ++;
-	  std::cout << "step done" << std::endl;
 	}
 
 	FoodSourceType& getBest()

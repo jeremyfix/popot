@@ -776,31 +776,24 @@ namespace popot
 	  // Randomly select a dimension to change
 	  change_dim = (int) popot::math::uniform_random(0, this->_dimension);
 	  
-	  std::cout << "changing dimension" << change_dim << std::endl;
-
 	  // Random combination coefficient
 	  phi = popot::math::uniform_random(-1.0, 1.0);
 
 	  // Compute the new source
-	  std::cout << "new source computation" << std::endl;
 	  new_source = *this;
 	  new_param_value = (*this)[change_dim] + phi * ((*this)[change_dim] - other_source[change_dim]);
 
-	  std::cout << "bounding" << std::endl;
 	  // Bound the parameter value
 	  if(new_param_value < lbound(change_dim))
 	    new_param_value = lbound(change_dim);
 	  else if(new_param_value > ubound(change_dim))
 	    new_param_value = ubound(change_dim);
 	  
-	  std::cout << "new source modification" << std::endl;
 	  new_source[change_dim] = new_param_value;
 
-	  std::cout << "fitness" << std::endl;
 	  // Evaluate the fitness of the new solution
 	  new_source.computeFitness(cost_function);
 
-	  std::cout << "greedy selection" << std::endl;
 	  // Perform a greedy selection
 	  if(new_source.getFitness() > getFitness())
 	    {
@@ -813,7 +806,6 @@ namespace popot
 	      // otherwise we increment its counter
 	      (*this)++;
 	    }
-	  std::cout << "done" << std::endl;
 	}
 
 	void resetCounter(void)  {
