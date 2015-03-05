@@ -25,17 +25,18 @@ int main(int argc, char* argv[]) {
   RNG_GENERATOR::rng_warm_up();
   
   // Some initialization of static fields
-  size_t dimension = 5;
-  Problem p(5);
+  size_t dimension = 30;
+  Problem p(dimension);
   
   // Let's create a swarm 
   // we might use spso2006, spso2007 or spso2011
-  auto algo = popot::algorithm::spso2011(dimension,
-  					 [&p] (size_t index) -> double { return p.get_lbound(index); },
-  					 [&p] (size_t index) -> double { return p.get_ubound(index); },
-  					 [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);},
-  					 [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());}
-					 );
+
+  auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
+  auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
+  auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
+  auto cost_function = [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());};
+
+  auto algo = popot::algorithm::spso2011(dimension, lbound, ubound, stop, cost_function);
 
   // Let us save the particles
   algo.save("particles.data");

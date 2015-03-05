@@ -277,11 +277,15 @@ int main(int argc, char* argv[]) {
 
   // Let's create our swarm
   std::cout << " Nb params :" << p.nb_parameters << std::endl;
+
+  auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
+  auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
+  auto stop = [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
+  auto cost_function = [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());};
+
+
   auto algo = popot::algorithm::spso2011(p.nb_parameters,
-  					 [&p] (size_t index) -> double { return p.get_lbound(index); },
-  					 [&p] (size_t index) -> double { return p.get_ubound(index); },
-  					 [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);},
-  					 [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());}
+  					 lbound,ubound, stop, cost_function
 					 );
 
   // Let's generate the graph of the connections within the swarm

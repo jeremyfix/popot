@@ -36,14 +36,16 @@ int main(int argc, char * argv[])
   size_t dimension = 15;
   size_t count=0;
   
+  auto lbound = [] (size_t index) -> double { return -10; };
+  auto ubound = [] (size_t index) -> double { return  10; };
+  auto cost_function = [&count,dimension] (double * params) -> double { return evaluate(params, dimension, count);};
+
   auto algo = popot::algorithm::abc(colony_size, dimension,
-				    [] (size_t index) -> double { return -10; },
-				    [] (size_t index) -> double { return  10; },
-				    stop,
-				    [&count,dimension] (double * params) -> double { return evaluate(params, dimension, count);});
+				    lbound, ubound,
+				    stop, cost_function);
 
   algo.init();
-  //algo.run();
+  algo.run();
 
   std::cout << "Best minimum found :" << algo.getBest().getFValue() << " in " << algo.getEpoch() << " steps " << std::endl;
   std::cout << "Position of the optimum : " << algo.getBest() << std::endl;
