@@ -9,12 +9,22 @@ namespace popot
    */
   namespace problems
   {
+
+
+    class Base {
+    public:
+      virtual double get_lbound(size_t index) = 0;
+      virtual double get_ubound(size_t index) = 0;
+      virtual bool stop(double fitness, size_t epoch) = 0;
+      virtual double evaluate(void * x) = 0;
+    };
+
     /**
      * N-dimensional Ackley function
      * @brief \f$ 20 (1 - \exp(-0.2 * \sqrt{\frac{1}{N} \sum_{i=1}^{N} x_i^2})) + \exp(0) - \exp(\frac{1}{N} \sum_{i=1}^{N} \cos(2\pi x_i) )\f$
      *  Bounds [-30; 30]
      */
-    class Ackley
+    class Ackley : public Base
     {
     public:
       size_t const dimension;
@@ -60,7 +70,7 @@ namespace popot
      * @brief \f$ \sum_{i=1}^{N} (\sum_{j=1}^{i} x_i)^2 \f$
      *  Bounds [-100; 100]
      */
-    class Quadric
+    class Quadric : public Base
     {
     public:
       size_t const dimension;
@@ -105,7 +115,7 @@ namespace popot
      * @brief \f$ 1 + \frac{1}{4000} \sum_{i=1}^{N} x_i^2 - \prod_i cos(\frac{x_i}{\sqrt{i}})\f$
      *        Bounds [-600;600]
      */
-    class Griewank
+    class Griewank : public Base
     {
     public:
       size_t const dimension;
