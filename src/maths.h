@@ -17,7 +17,7 @@ namespace popot
      * Returns a random value in [min; max]
      * uniformely sampled
      */
-    double uniform_random(double min, double max)
+    inline double uniform_random(double min, double max)
     {
       return min + (max - min) * double(RNG_GENERATOR::rng_rand()) / RNG_GENERATOR::RNG_RAND_MAX;
     }
@@ -26,7 +26,7 @@ namespace popot
      * Returns a random value in [min; max[
      * uniformely sampled
      */
-    double uniform_random_exclusive(double min, double max)
+    inline double uniform_random_exclusive(double min, double max)
     {
       return min + (max - min) * double(RNG_GENERATOR::rng_rand()) / (RNG_GENERATOR::RNG_RAND_MAX+1);
     }
@@ -34,7 +34,7 @@ namespace popot
     /**
      * Returns a value from a normal distribution
      */
-    double normal(double mean, double std)
+    inline double normal(double mean, double std)
     {
       // We generate a sample following a normal distribution
       // with the Box-Muller method
@@ -47,7 +47,7 @@ namespace popot
       return mean + std * x;
     }
 
-    double normal_spso2011(double mean, double std)
+    inline double normal_spso2011(double mean, double std)
     {
       // We generate a sample following a normal distribution
       // with the Box-Muller method
@@ -74,7 +74,7 @@ namespace popot
      * Returns a random value in [|min; max|]
      * uniformely sampled
      */
-    int uniform_integer(int imin, int imax)
+    inline int uniform_integer(int imin, int imax)
     {
       return floor(uniform_random(double(imin), double(imax+1)));
     }
@@ -83,7 +83,7 @@ namespace popot
      * Returns a random index from a discrete set of probabilities
      * probabilities are supposed to sum to 1.0 !
      */
-    int random_from_array(double* proba)
+    inline int random_from_array(double* proba)
     {
       double val = uniform_random(0.0, 1.0);
       int i = 0;
@@ -99,7 +99,7 @@ namespace popot
     /**
      * Gibbs sampling 
      */
-    int random_gibbs_from_array(double * proba, int nb, double inv_temperature)
+    inline int random_gibbs_from_array(double * proba, int nb, double inv_temperature)
     {
       double exp_proba[nb];
       double sum = 0.0;
@@ -117,7 +117,7 @@ namespace popot
      * Returns a permutation of indexes [|0 .. max|]
      * It supposes indexes to be allocated to size max + 1
      **/
-    void random_shuffle_indexes(size_t * indexes, size_t S)
+    inline void random_shuffle_indexes(size_t * indexes, size_t S)
     {
       size_t * index_temp = new size_t[S];
       for(size_t i = 0 ; i < S ; ++i)
