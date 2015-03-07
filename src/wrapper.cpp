@@ -1,6 +1,6 @@
 /*   This file is part of popot
  *
- *   Copyright (C) 2011-2012
+ *   Copyright (C) 2011-
  *
  *   Author : Hadrien Glaude, Jeremy Fix
  *
