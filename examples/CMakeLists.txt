@@ -2,27 +2,41 @@
 include_directories (${CMAKE_SOURCE_DIR}/src)
 
 # Define our examples to compile
-set(USAGE_EXAMPLES example-000 example-001 example-002 example-003 example-benchmark)
+file(
+	GLOB 
+	usage_examples
+	*.cc
+)
 
+file(
+	GLOB 
+	pyusage_examples
+	*.py
+)
 
 # loop over the list to compile them
-foreach(f ${USAGE_EXAMPLES})
-    add_executable (${f} ${f}.cc)
-    target_link_libraries (${f} ${LIBS_FOR_EXAMPLE})	
-endforeach(f) 
+foreach(f ${usage_examples})
+    get_filename_component(exampleName ${f} NAME_WE) 
+    add_executable (${exampleName} ${f}) 
+    set_target_properties(${exampleName} PROPERTIES LINKER_LANGUAGE CXX)
+    set_target_properties(${exampleName} PROPERTIES COMPILE_FLAGS "${PROJECT_ALL_CFLAGS}" LINK_FLAGS "${PROJECT_ALL_LDFLAGS}")
 
-foreach(f ${USAGE_EXAMPLES})
-    install(PROGRAMS ${CMAKE_BINARY_DIR}/examples/${f} 
+    # If the project generates libs on which the examples depend
+    # we must ensure that the libs are compiled before the examples (especially on multiple cores)
+    add_dependencies(${exampleName} popot)	 
+
+    install(PROGRAMS ${CMAKE_CURRENT_BINARY_DIR}/${exampleName} 
             DESTINATION bin
-            RENAME popot-${f})
-endforeach(f) 
+            RENAME ${CMAKE_PROJECT_NAME}-${exampleName}
+	    COMPONENT binary)
+endforeach(f)
 
 # Define the examples for the wrapper
-set(PYTHON_USAGE_EXAMPLES example-000.py)
 
-foreach(f ${PYTHON_USAGE_EXAMPLES})
+foreach(f ${pyusage_examples})
     configure_file(${f} ${CMAKE_CURRENT_BINARY_DIR}/${f} COPYONLY)
     install(FILES ${CMAKE_BINARY_DIR}/examples/${f}
             DESTINATION bin
-            RENAME popot-${f})
+            RENAME ${CMAKE_PROJECT_NAME}-${f}
+	    COMPONENT binary)
 endforeach(f) 
