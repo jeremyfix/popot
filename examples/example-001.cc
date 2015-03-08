@@ -39,14 +39,16 @@ int main(int argc, char* argv[]) {
   auto algo = popot::algorithm::spso2011(dimension, lbound, ubound, stop, cost_function);
 
   // Let us save the particles
-  algo.save("particles.data");
+  algo->save("particles.data");
   
   // We now run our algorithm
-  algo.run(1);
+  algo->run(1);
 
   // We load the particles we had initially
-  algo.load("particles.data");
+  algo->load("particles.data");
 
-  std::cout << "Nb steps : " << algo.epoch << " ; # of generated neighborhoods : " << algo.nb_new_neigh << std::endl;
+  std::cout << "Nb steps : " << algo->epoch << " ; # of generated neighborhoods : " << algo->nb_new_neigh << std::endl;
+
+  delete algo;
 
 }
