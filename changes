@@ -1,3 +1,7 @@
+2.13
+- minor changes in the licenses in the source files
+- a bug in the example : it looks like giving the lambda functions from which const ref are taken in the constructors of the algorithm leads to weird issues in memory;
+
 2.11
 - minor bug correction (reset epoch and nb_new_neigh when calling pso_algorithm.init())
 
