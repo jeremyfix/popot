@@ -24,6 +24,9 @@
 #ifndef POPOT_BENCHMARK
 #define POPOT_BENCHMARK
 
+#include <list>
+#include <stdexcept>
+
 namespace popot
 {
   namespace benchmark
@@ -57,21 +60,23 @@ namespace popot
 
       double _mean_error;
       double _std_error;
-      double _mean_nb_f_evaluations;
-      double _log_progress;
       int    _nb_failures;
       double * _best_position;
       double _best_fitness;
       double _success_rate;
       int _trial_counter;
 
+      std::list<double> mean_error;
+      std::list<double> mean_error2;
+      std::list<double> mean_FE;
+
 
     public:
     Benchmark(ALGO& algo, PROBLEM& p, int nb_trials) 
-      : _algo(algo), _problem(p), _nb_trials(nb_trials), _mean_error(0.0),_std_error(0.0), _mean_nb_f_evaluations(0.0),
-	_log_progress(0.0), _nb_failures(0), _best_position(0), _best_fitness(0), _success_rate(0.0), _trial_counter(0)
+      : _algo(algo), _problem(p), _nb_trials(nb_trials), _mean_error(0.0),_std_error(0.0), 
+	_nb_failures(0), _best_position(0), _best_fitness(0), _success_rate(0.0), _trial_counter(0)
       {
-	_best_position = new double[_problem._dimension];
+	_best_position = new double[_problem.getDim()];
       }
 
       ~Benchmark()
@@ -94,23 +99,6 @@ namespace popot
       {
 	return _std_error;
       }
-
-      /**
-       * Returns the mean number of function evaluations to meet the stop criteria over _nb_trials
-       */
-      double getMeanFEvaluations(void) const
-      {
-	return _mean_nb_f_evaluations;
-      }
-
-      /**
-       * Returns the log progress over _nb_trials
-       * NOT FUNCTIONAL YET
-       */
-      double getLogProgress(void) const
-      {
-	return _log_progress;
-      } 
 
       /**
        * Returns the success rate over _nb_trials
@@ -143,64 +131,104 @@ namespace popot
       {
 	_mean_error = 0.0;
 	_std_error = 0.0;
-	_mean_nb_f_evaluations = 0.0;
-	_log_progress = 0.0;
 	_nb_failures = 0;
 	_best_fitness = 0;
 	_success_rate = 0.0;
 	_trial_counter = 0;
 
-	//ALGO* algo;
 	// Some temporary variables used to compute online the mean, std, .. 
 	double sum_error = 0;
 	double sum_square_errors=0;
-	double sum_fe = 0;
-	double sum_log = 0;
 	double init_fitness = 0;
 	
+	mean_error.clear();
+	mean_error2.clear();
+	mean_FE.clear();
+
 	for(int i = 1 ; i <= _nb_trials ; ++i)
 	  {
 	    _problem.init();
 	    _algo.init();
-
-	    _trial_counter++;
-	    
 	    init_fitness = _algo.getBestFitness();
-	    _algo.run();
+
+	    auto mean_FE_iter = mean_FE.begin(); // used only when i != 1
+	    auto mean_error_iter = mean_error.begin();
+	    auto mean_error2_iter = mean_error2.begin();
+
+	    if(i == 1) {// The first run fills in the mean_FE 
+	      mean_FE.push_back(_problem.getFE());
+	      double best_fitness = _algo.getBestFitness();
+	      mean_error.push_back(best_fitness);
+	      mean_error2.push_back(best_fitness*best_fitness);
+	    }
+	    else {
+	      if(*mean_FE_iter != _problem.getFE()) {
+		std::ostringstream ostr;
+		ostr.str("");
+		ostr << "Cannot measure the mean error over several runs if each step of the algorithm does not produce the same function evaluation step, got " << _problem.getFE() << " while expecting " << *mean_FE_iter << std::endl;
+		throw std::runtime_error(ostr.str());
+	      }
+	      ++mean_FE_iter;
+
+	      double best_fitness = _algo.getBestFitness();
+	      *(mean_error_iter++) += best_fitness;
+	      *(mean_error2_iter++) += best_fitness * best_fitness;
+	    }
+
+
+	    while(_problem.getFE() < _problem.max_fe()) {
+	      _algo.step();
+	      if(i == 1) {// The first run fills in the mean_FE
+		mean_FE.push_back(_problem.getFE());
+		double best_fitness = _algo.getBestFitness();
+		mean_error.push_back(best_fitness);
+		mean_error2.push_back(best_fitness*best_fitness);
+	      }
+	      else {
+		if(*mean_FE_iter != _problem.getFE()){
+		  std::ostringstream ostr;
+		  ostr.str("");
+		  ostr << "Cannot measure the mean error over several runs if each step of the algorithm does not produce the same function evaluation step, got " << _problem.getFE() << " while expecting " << *mean_FE_iter << std::endl;
+		  throw std::runtime_error(ostr.str());
+		}
+		++mean_FE_iter;
+
+		double best_fitness = _algo.getBestFitness();
+		*(mean_error_iter++) += best_fitness;
+		*(mean_error2_iter++) += best_fitness * best_fitness;
+	      }	
+	    }
+
 
 	    // Update the statistics
 	    double best_fitness = _algo.getBestFitness();
 	    sum_error += best_fitness;
 	    sum_square_errors += best_fitness*best_fitness;
-	    sum_fe += _problem._count;
-	    sum_log += (log(best_fitness) - log(init_fitness))/double(_problem._count);
+
 	    if(_problem.has_failed(best_fitness))
 	      _nb_failures++;
 	    if(i == 1 || best_fitness < _best_fitness)
 	      {
 		_best_fitness = best_fitness;
 		_algo.fillBestPosition(_best_position);
-		//memcpy(_algo.getBest().getPosition().getValuesPtr(), _best_position, _problem._dimension*sizeof(double));
 	      }
-	      
+
+	    ++_trial_counter;
+
 	    // Eventually print the statistics
 	    if(mode)
 	      {
 		_mean_error = sum_error/double(i);
 		_std_error = sqrt((sum_square_errors - 2.0 * _mean_error * sum_error + double(i) * _mean_error*_mean_error)/double(i));
-		_mean_nb_f_evaluations = sum_fe/double(i);
-		_log_progress = sum_log/double(i);
 		_success_rate = 100.*double(i-_nb_failures)/double(i);
 
 		print(std::cout);
-	      }
+	      }	   
 	  }
 		     
 	// Before leaving, ensure that the statistics are up-to-date;
 	_mean_error = sum_error/double(_nb_trials);
 	_std_error = sqrt((sum_square_errors - 2.0 * _mean_error * sum_error + double(_nb_trials) * _mean_error*_mean_error)/double(_nb_trials));
-	_mean_nb_f_evaluations = sum_fe/double(_nb_trials);
-	_log_progress = sum_log/double(_nb_trials);
 	_success_rate = 100.*double(_nb_trials-_nb_failures)/double(_nb_trials);
       }
 
@@ -212,8 +240,6 @@ namespace popot
 	os << "Trial=" << _trial_counter << ";";
 	os << "Error(mean)= " << getMeanError() << ";";
 	os << "Error(std)= " << getStdError() << ";";
-	os << "FE(mean)= " << getMeanFEvaluations() << ";";
-	os << "Log_progress(mean)= " << getLogProgress() << ";";
 	os << "Best_min= " << getBestFitness() << ";";
 	os << "Success_rate= " << getSuccessRate() << "%;";
 	os << std::endl;

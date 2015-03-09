@@ -13,7 +13,7 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 
 // Define the vector type and the problem
 typedef popot::algorithm::ParticleSPSO::VECTOR_TYPE TVector;
-typedef popot::problems::Rosenbrock Problem;
+typedef popot::problems::Ackley Problem;
 
 // **************************************** //
 // ************** Main ******************** //

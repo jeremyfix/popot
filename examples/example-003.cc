@@ -44,12 +44,14 @@ int main(int argc, char * argv[])
 				    lbound, ubound,
 				    stop, cost_function);
 
-  algo.init();
-  algo.run();
+  algo->init();
+  algo->run();
 
-  std::cout << "Best minimum found :" << algo.getBest().getFValue() << " in " << algo.getEpoch() << " steps " << std::endl;
-  std::cout << "Position of the optimum : " << algo.getBest() << std::endl;
+  std::cout << "Best minimum found :" << algo->getBest().getFValue() << " in " << algo->getEpoch() << " steps " << std::endl;
+  std::cout << "Position of the optimum : " << algo->getBest() << std::endl;
   std::cout << std::endl;
   std::cout << (int)count << " Function Evaluations" << std::endl;
+
+  delete algo;
   
 }

@@ -54,10 +54,11 @@ namespace popot
     class Base {
     public:
       virtual void init(void) = 0;
+      virtual bool stop(void) = 0;
       virtual void step(void) = 0;
-      virtual void run(int verbose) = 0;
+      virtual void run(int verbose=0) = 0;
       virtual double getBestFitness() const = 0;
-      virtual void fillBestPosition(double *) const = 0;
+      virtual void fillBestPosition(double *) = 0;
     };
 
   }
@@ -347,12 +348,20 @@ namespace popot
 	 */
 	void run(int verbose=0)
 	{
-	  while(!_stop_criteria(getBest().getFitness(), epoch))
+	  while(!stop())
 	    {
 	      step();
 	      if(verbose) std::cout << '\r' << std::setw(6) << std::setfill('0') << epoch << " " << getBest().getFitness() << std::setw(5) << std::setfill(' ') << ' ' << std::flush;
 	    }
 	  if(verbose) std::cout << std::endl;
+	}
+
+
+	/**
+	 * Should we stop the algorithm ?
+	 */
+	bool stop() {
+	  return _stop_criteria(getBest().getFitness(), epoch);
 	}
 
 	/**
@@ -368,8 +377,9 @@ namespace popot
 	 * Fill in the best position in an array that we suppose has been 
 	 * previously allocated to the correct dimension
 	 */ 
-	void fillBestPosition(double * position) const{
-	  
+	void fillBestPosition(double * position) {
+	  auto values_ptr = getBest().getPosition().getValuesPtr();
+	  std::copy(values_ptr, values_ptr + _dimension, position);
 	}
 
 

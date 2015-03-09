@@ -7,12 +7,12 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 typedef popot::Vector<double> TVector;
 
 popot::problems::Base* make_problem(std::string problem_name, int dimension) {
-  if(problem_name == "Ackley")
+  //if(problem_name == "Ackley")
     return new popot::problems::Ackley(dimension);
-  else if(problem_name == "Quadric")
-    return new popot::problems::Quadric(dimension);
-  else
-    return new popot::problems::Griewank(dimension);
+  //else if(problem_name == "Quadric")
+  //  return new popot::problems::Quadric(dimension);
+  //else
+  //  return new popot::problems::Griewank(dimension);
 }
 
 int main(int argc, char * argv[])
@@ -47,6 +47,9 @@ int main(int argc, char * argv[])
     std::cerr << "Invalid algorithm name " << std::endl;
     return -1;
   }
-  
+  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 1000);
+  benchmark.run(1);
+  std::cout << benchmark << std::endl;
+
   
 }
