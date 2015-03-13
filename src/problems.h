@@ -56,7 +56,6 @@ namespace popot
 	_count = 0;
       }
 
-
       virtual double get_lbound(size_t index)           = 0;
       virtual double get_ubound(size_t index)           = 0;
       virtual bool   stop(double fitness, size_t epoch) = 0;

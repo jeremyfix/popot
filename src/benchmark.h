@@ -27,6 +27,7 @@
 #include <list>
 #include <stdexcept>
 #include <iterator>
+#include<json/writer.h>
 
 namespace popot
 {
@@ -68,7 +69,6 @@ namespace popot
       int _trial_counter;
 
       std::list<double> mean_error;
-      std::list<double> mean_error2;
       std::list<double> std_error;
       std::list<double> mean_FE;
 
@@ -142,10 +142,9 @@ namespace popot
 	double sum_error = 0;
 	double sum_square_errors=0;
 	double init_fitness = 0;
-	
-	mean_error.clear();
-	mean_error2.clear();
-	std_error.clear();
+        
+	std::list<double> sum_error_vec;
+	std::list<double> sum_error2_vec;
 	mean_FE.clear();
 
 	for(int i = 1 ; i <= _nb_trials ; ++i)
@@ -155,14 +154,14 @@ namespace popot
 	    init_fitness = _algo.getBestFitness();
 
 	    auto mean_FE_iter = mean_FE.begin(); // used only when i != 1
-	    auto mean_error_iter = mean_error.begin();
-	    auto mean_error2_iter = mean_error2.begin();
+	    auto sum_error_iter = sum_error_vec.begin();
+	    auto sum_error2_iter = sum_error2_vec.begin();
 
 	    if(i == 1) {// The first run fills in the mean_FE 
 	      mean_FE.push_back(_problem.getFE());
 	      double best_fitness = _algo.getBestFitness();
-	      mean_error.push_back(best_fitness);
-	      mean_error2.push_back(best_fitness*best_fitness);
+	      sum_error_vec.push_back(best_fitness);
+	      sum_error2_vec.push_back(best_fitness*best_fitness);
 	    }
 	    else {
 	      if(*mean_FE_iter != _problem.getFE()) {
@@ -174,8 +173,8 @@ namespace popot
 	      ++mean_FE_iter;
 
 	      double best_fitness = _algo.getBestFitness();
-	      *(mean_error_iter++) += best_fitness;
-	      *(mean_error2_iter++) += best_fitness * best_fitness;
+	      *(sum_error_iter++) += best_fitness;
+	      *(sum_error2_iter++) += best_fitness * best_fitness;
 	    }
 
 
@@ -184,8 +183,8 @@ namespace popot
 	      if(i == 1) {// The first run fills in the mean_FE
 		mean_FE.push_back(_problem.getFE());
 		double best_fitness = _algo.getBestFitness();
-		mean_error.push_back(best_fitness);
-		mean_error2.push_back(best_fitness*best_fitness);
+		sum_error_vec.push_back(best_fitness);
+		sum_error2_vec.push_back(best_fitness*best_fitness);
 	      }
 	      else {
 		if(*mean_FE_iter != _problem.getFE()){
@@ -197,8 +196,8 @@ namespace popot
 		++mean_FE_iter;
 
 		double best_fitness = _algo.getBestFitness();
-		*(mean_error_iter++) += best_fitness;
-		*(mean_error2_iter++) += best_fitness * best_fitness;
+		*(sum_error_iter++) += best_fitness;
+		*(sum_error2_iter++) += best_fitness * best_fitness;
 	      }	
 	    }
 
@@ -232,7 +231,7 @@ namespace popot
 	// Before leaving, ensure that the statistics are up-to-date;
 	_mean_error = sum_error/double(_nb_trials);
 	if(_nb_trials > 1)
-	  _std_error = sqrt(sum_square_errors/double(_nb_trials-1.0) - 2.0 * _mean_error * sum_error/double(_nb_trials-1.0) + _nb_trials/double(_nb_trials-1.0) * _mean_error * _mean_error);
+	  _std_error = sqrt(sum_square_errors/double(_nb_trials-1.0) - sum_error * sum_error/double(_nb_trials * (_nb_trials-1.0)));
 	else {
 	  _std_error = 0.0;
 	  std::cerr << "I cannot compute a standard deviation with a single trial" << std::endl;
@@ -243,17 +242,15 @@ namespace popot
 	// The std is :  sigma(t) = sqrt{ 1/(N-1) \sum_i (e_i(t) - \mu(t))^2}
 	//                        = sqrt{ (1/(N-1) \sum_i e_i(t)^2) - 2.0 * 1/(N-1) \mu(t) \sum_i e_i(t) + N/(N-1) \mu^2}
 	//                        = sqrt{ (1/(N-1) \sum_i e_i(t)^2) - 2.0 * 1/(N(N-1)) (\sum_i e_i(t))^2 + N/(N-1) \mu^2}
-	auto mean_error_iter = mean_error.begin();
-	auto mean_error2_iter = mean_error2.begin();
+	//                        = sqrt{ (1/(N-1) \sum_i e_i(t)^2) - 1/(N(N-1)) (\sum_i e_i(t))^2
+	auto sum_error_iter = sum_error_vec.begin();
+	auto sum_error2_iter = sum_error2_vec.begin();
+	auto mean_error_iter = std::back_inserter(mean_error);
 	auto std_error_iter = std::back_inserter(std_error);
-	for(unsigned int i = 0 ; i < mean_error.size(); ++i, ++mean_error_iter, ++mean_error2_iter, ++std_error_iter) {
-	  *std_error_iter = sqrt(*mean_error2_iter / double(_nb_trials-1.0)) - 2.0 * ;
+	for(unsigned int i = 0 ; i < sum_error_vec.size(); ++i, ++sum_error_iter, ++sum_error2_iter, ++std_error_iter, ++mean_error_iter) {
+	  *mean_error_iter = *sum_error_iter / double(_nb_trials);
+	  *std_error_iter = sqrt(*sum_error2_iter / double(_nb_trials-1.0) - 1.0 / double(_nb_trials * (_nb_trials-1.0)) * (*sum_error_iter) * (*sum_error_iter)) ;
 	}
-
-
-	for(auto& e: mean_error)
-	  e /= double(_nb_trials);
-
       }
 
       /**
@@ -267,6 +264,36 @@ namespace popot
 	os << "Best_min= " << getBestFitness() << ";";
 	os << "Success_rate= " << getSuccessRate() << "%;";
 	os << std::endl;
+      }
+
+      void dump_json(std::string filename, std::string problem_name, std::string algo_name) const {
+	std::cout << "Dumping the benchmark results in " << filename << std::endl;
+	
+	Json::Value results;   
+	Json::Value FE(Json::arrayValue);
+	for(auto v: mean_FE)
+	  FE.append(v);
+
+	Json::Value mean(Json::arrayValue);
+	for(auto v: mean_error)
+	  mean.append(v);
+
+	Json::Value std(Json::arrayValue);
+	for(auto v: std_error)
+	  std.append(v);
+	
+	results["problem"]["name"] = problem_name;
+	results["problem"]["dimension"] = _problem.getDim();
+	  
+	results["algorithm"] = algo_name;
+	results["nb_trials"] = _nb_trials;
+	results["FE"] = FE;
+	results["mean"] = mean;
+	results["std"] = std;
+	
+	std::ofstream outfile(filename.c_str());
+	outfile << results;
+	outfile.close();
       }
 
       friend std::ostream & operator <<(std::ostream & os, const Benchmark &b)

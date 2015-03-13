@@ -47,9 +47,12 @@ int main(int argc, char * argv[])
     std::cerr << "Invalid algorithm name " << std::endl;
     return -1;
   }
-  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 1000);
+  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 10);
   benchmark.run(1);
   std::cout << benchmark << std::endl;
+
+
+  benchmark.dump_json("results.json", problem_name, algo_name);
 
   
 }
