@@ -26,6 +26,7 @@
 
 #include <list>
 #include <stdexcept>
+#include <iterator>
 
 namespace popot
 {
@@ -68,6 +69,7 @@ namespace popot
 
       std::list<double> mean_error;
       std::list<double> mean_error2;
+      std::list<double> std_error;
       std::list<double> mean_FE;
 
 
@@ -143,6 +145,7 @@ namespace popot
 	
 	mean_error.clear();
 	mean_error2.clear();
+	std_error.clear();
 	mean_FE.clear();
 
 	for(int i = 1 ; i <= _nb_trials ; ++i)
@@ -228,8 +231,29 @@ namespace popot
 		     
 	// Before leaving, ensure that the statistics are up-to-date;
 	_mean_error = sum_error/double(_nb_trials);
-	_std_error = sqrt((sum_square_errors - 2.0 * _mean_error * sum_error + double(_nb_trials) * _mean_error*_mean_error)/double(_nb_trials));
+	if(_nb_trials > 1)
+	  _std_error = sqrt(sum_square_errors/double(_nb_trials-1.0) - 2.0 * _mean_error * sum_error/double(_nb_trials-1.0) + _nb_trials/double(_nb_trials-1.0) * _mean_error * _mean_error);
+	else {
+	  _std_error = 0.0;
+	  std::cerr << "I cannot compute a standard deviation with a single trial" << std::endl;
+	}
 	_success_rate = 100.*double(_nb_trials-_nb_failures)/double(_nb_trials);
+
+	// Compute the mean error and variance accross the trials
+	// The std is :  sigma(t) = sqrt{ 1/(N-1) \sum_i (e_i(t) - \mu(t))^2}
+	//                        = sqrt{ (1/(N-1) \sum_i e_i(t)^2) - 2.0 * 1/(N-1) \mu(t) \sum_i e_i(t) + N/(N-1) \mu^2}
+	//                        = sqrt{ (1/(N-1) \sum_i e_i(t)^2) - 2.0 * 1/(N(N-1)) (\sum_i e_i(t))^2 + N/(N-1) \mu^2}
+	auto mean_error_iter = mean_error.begin();
+	auto mean_error2_iter = mean_error2.begin();
+	auto std_error_iter = std::back_inserter(std_error);
+	for(unsigned int i = 0 ; i < mean_error.size(); ++i, ++mean_error_iter, ++mean_error2_iter, ++std_error_iter) {
+	  *std_error_iter = sqrt(*mean_error2_iter / double(_nb_trials-1.0)) - 2.0 * ;
+	}
+
+
+	for(auto& e: mean_error)
+	  e /= double(_nb_trials);
+
       }
 
       /**
