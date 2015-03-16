@@ -29,7 +29,9 @@ namespace popot
 
   /**
    * Definition of some benchmarking problems
-   */
+   * "Problem Definitions and Evaluation Criteria for the CEC 2005 Special Session on Real-Parameter Optimization", 2005
+   * P. N. Suganthan, N. Hansen, J. J. Liang, K. Deb, Y. -P. Chen, A. Auger, S. Tiwari
+   **/
   namespace problems
   {
 
@@ -584,117 +586,44 @@ namespace popot
       }
     };
 
-    // /**
-    //  * 2-dimensional Dropwave function
-    //  * @brief \f$ -\frac{1 + \cos(12 \sqrt{x_0^2 + x_1^2} + x_1^2)}{0.5 (x_0^2 + x_1^2) + 2} \f$
-    //  * Bounds [-100,100]
-    //  */
-    // class Dropwave
-    // {
-    // public:
-    //   size_t const dimension;
-    //   size_t count;
+    /**
+     * 2-dimensional Dropwave function
+     * @brief \f$ -\frac{1 + \cos(12 \sqrt{x_0^2 + x_1^2} + x_1^2)}{0.5 (x_0^2 + x_1^2) + 2} \f$
+     * Bounds [-100,100]
+     */
+    class Dropwave : public Base
+    {
+    public:
       
-    // Dropwave() : dimension(2), count(0) {}
+      Dropwave() : Base(2) {}
 
-    //   void init(void) {
-    // 	count = 0;
-    //   }
       
-    //   double get_lbound(size_t index) 
-    //   { 
-    // 	return -5.12;
-    //   }
+      double get_lbound(size_t index)  { return -100;   }
 
-    //   double get_ubound(size_t index) 
-    //   { 
-    // 	return 5.12;
-    //   }
+      double get_ubound(size_t index) { return 100;}
 
-    //   bool stop(double fitness, size_t epoch) 
-    //   {
-    // 	return (fitness <= -1.0+1e-4) || (count >= 20000);
-    //   }
+      bool stop(double fitness, size_t epoch) {
+    	return (fitness <= min_fitness()) || (getFE() >= max_fe());
+      }
 
-    //   double evaluate(void * x){
-    // 	double * params = (double*) x;
-    // 	count++;
-    // 	return -(1.0 + cos(12.0*sqrt(pow(params[0],2.0) + pow(params[1],2.0))))
-    // 	  / (0.5 * (pow(params[0],2.0) + pow(params[1],2.0))+2.0);
-    //   }
-    // };
+      bool has_failed(double fitness) {
+	return fitness > min_fitness();
+      }
 
+      size_t max_fe(void) {
+	return 10000*getDim();
+      }
 
-    // // The test functions of the CEC2005 benchmark
-    // // "Problem Definitions and Evaluation Criteria for the CEC 2005 Special Session on Real-Parameter Optimization", 2005
-    // // P. N. Suganthan, N. Hansen, J. J. Liang, K. Deb, Y. -P. Chen, A. Auger, S. Tiwari
-    // namespace CEC2005
-    // {
-    // }
+      double min_fitness(void) {
+	return -1+1e-4;
+      }
 
-    // /**
-    //  * Functions from BBOB : http://coco.lri.fr/downloads/download11.06/bbobc.tar.gz
-    //  */
-    // namespace BBOB
-    // {
-    // }
-
-    // /**
-    //  * Functions as defined within the Standard PSO 2011 (17/09/2012)
-    //  */ 
-    // namespace SPSO2011Bench
-    // {
-
-    //   /**
-    //    * N-dimensional Rosenbrock banana function
-    //    * @brief \f$ \sum_{i=1}^{N-1} (100 (y_{i+1} - y_i^2)^2 + (y_i - 1)^2)\f$
-    //    *        with \f$ y_i = x_i + o_i - 1\f$
-    //    * Bounds [-30,30]
-    //    */
-    // 	class Rosenbrock
-    // 	{
-    // 	public:
-    // 	  size_t const dimension;
-    // 	  size_t count;
-
-    // 	Rosenbrock(int dimension) : dimension(dimension), count(0) {}
-
-    // 	  void init(void) {
-    // 	    count = 0;
-    // 	  }
-
-    // 	  double get_lbound(size_t index)
-    // 	  {
-    // 	    return -30;
-    // 	  }
-
-    // 	  double get_ubound(size_t index)
-    // 	  {
-    // 	    return 30;
-    // 	  }
-	
-    // 	  bool stop(double fitness, size_t epoch)
-    //       {
-    // 	  return (fitness <= 1e-10) || (count >= 10000*dimension);
-    //       }
-
-    // 	  double evaluate(void * x)
-    // 	  {
-    // 	    double * params = (double*) x;
-    // 	    count++;
-    // 	    double fit = 0.0;
-    // 	    double y_i, y_i_1;
-    // 	    for(size_t i = 0 ; i < dimension-1 ; ++i)
-    // 	      {
-    // 		y_i = params[i]+1;
-    // 		y_i_1 = params[i+1]+1;
-    // 		fit += 100 * pow(y_i_1 - pow(y_i,2.0),2.0)+pow(y_i - 1.0,2.0);
-    // 	      }
-    // 	    return fit;
-    // 	  }
-    // 	};
-
-    //}
+      double operator()(void * x){
+    	double * params = (double*) x;
+    	return -(1.0 + cos(12.0*sqrt(pow(params[0],2.0) + pow(params[1],2.0))))
+    	  / (0.5 * (pow(params[0],2.0) + pow(params[1],2.0))+2.0);
+      }
+    };
 
   } // namespace problems
 } // namespace popot

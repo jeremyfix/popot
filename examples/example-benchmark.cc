@@ -25,6 +25,11 @@ popot::problems::Base* make_problem(std::string problem_name, int dimension) {
     return new popot::problems::Schwefel(dimension);
   else if(problem_name == "Salomon")
     return new popot::problems::Salomon(dimension);
+  else if(problem_name == "Dropwave") {
+    if(dimension != 2)
+      throw std::logic_error("Dropwave is only in dimension 2");
+    return new popot::problems::Dropwave();
+  }
   else 
     throw std::logic_error("Unrecognized problem name");
 }
@@ -67,12 +72,24 @@ int main(int argc, char * argv[])
   if(!algo) 
     throw std::logic_error("The algorithm is not initialized");
 
-  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 100);
+  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 2);
   benchmark.run(1);
   std::cout << benchmark << std::endl;
 
+  std::string result_filename_base = problem_name + "_" + std::to_string(dimension) + "_" + algo_name;
+  unsigned int index = 0;
+  std::string result_filename = result_filename_base + "_" + std::to_string(index++) + ".json";
+  std::ifstream infile(result_filename.c_str());
+  while(infile.is_open()) {
+    infile.close();
+    result_filename = result_filename_base + "_" + std::to_string(index++) + ".json";
+    infile.open(result_filename.c_str());
+  }
+  infile.close();
 
-  benchmark.dump_json("results.json", problem_name, algo_name);
+
+  benchmark.dump_json(result_filename, problem_name, algo_name);
+  std::cout << "Results saved in " << result_filename << std::endl;
 
   
 }
