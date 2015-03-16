@@ -7,39 +7,29 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 
 #include "popot.h"
 
-double evaluate(double * x, size_t dimension, size_t & count)
-{
-  double * params = (double*) x;
-  double fit = 0.0;
-  double y_i, y_i_1;
-  for(size_t i = 0 ; i < dimension-1 ; ++i)
-    {
-      y_i = params[i];
-      y_i_1 = params[i+1];
-      fit += 100 * pow(y_i_1 - pow(y_i,2.0),2.0)+pow(y_i - 1.0,2.0);
-    }
-  count ++;
-
-  return fit;
-}
-
-bool stop(double f, int epoch)
-{
-  return (f <= 1e-2) || (epoch >= 10000);
-}
+// Define the vector type and the problem
+typedef popot::algorithm::ParticleSPSO::VECTOR_TYPE TVector;
+typedef popot::problems::Ackley Problem;
 
 int main(int argc, char * argv[])
 {
   RNG_GENERATOR::rng_srand();
-
-  size_t colony_size = 50;
-  size_t dimension = 15;
-  size_t count=0;
+  RNG_GENERATOR::rng_warm_up();
+ 
+  // Some initialization of static fields
+  size_t dimension = 30;
+  Problem p(dimension);
   
-  auto lbound = [] (size_t index) -> double { return -10; };
-  auto ubound = [] (size_t index) -> double { return  10; };
-  auto cost_function = [&count,dimension] (double * params) -> double { return evaluate(params, dimension, count);};
+  // Let's create a swarm 
+  // we might use spso2006, spso2007 or spso2011
 
+  auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
+  auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
+  auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
+  auto cost_function = [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());};
+
+
+  size_t colony_size = 50; 
   auto algo = popot::algorithm::abc(colony_size, dimension,
 				    lbound, ubound,
 				    stop, cost_function);
@@ -50,7 +40,7 @@ int main(int argc, char * argv[])
   std::cout << "Best minimum found :" << algo->getBest().getFValue() << " in " << algo->getEpoch() << " steps " << std::endl;
   std::cout << "Position of the optimum : " << algo->getBest() << std::endl;
   std::cout << std::endl;
-  std::cout << (int)count << " Function Evaluations" << std::endl;
+  std::cout << p.getFE() << " Function Evaluations" << std::endl;
 
   delete algo;
   
