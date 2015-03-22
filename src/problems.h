@@ -94,6 +94,60 @@ namespace popot
       virtual double operator()(void * x)               = 0;
     };
 
+
+    class AckleySmall : public Base
+    {
+    public:
+
+      AckleySmall(int dimension) : Base(dimension){}
+
+      double get_lbound(size_t index)
+      {
+	return -32.0;
+      }
+
+      double get_ubound(size_t index)
+      {
+	return 32.0;
+      }
+
+      bool stop(double fitness, size_t epoch)
+      {
+	return (fitness <= min_fitness()) || (getFE() >= max_fe());
+      }
+
+      bool has_failed(double fitness) {
+	return fitness > min_fitness();
+      }
+
+      size_t max_fe(void) {
+	return 30*getDim();
+      }
+
+      double min_fitness(void) {
+	return 1e-4;
+      }
+
+      double operator()(void * x)
+      {
+	double * params = (double*) x;
+	double fit = 0.0;
+	double cos_x = 0.0;
+	double sq_x = 0.0;
+	size_t dimension = getDim();
+	for(size_t i = 0 ; i < dimension ; ++i)
+	  {
+	    sq_x += pow(params[i],2.0);
+	    cos_x += cos(2.0 * M_PI * params[i]);
+	  }
+	fit = 20.0 * (1.0 - exp(-0.2 * sqrt(1.0/double(dimension) * sq_x)))
+	  + exp(1) - exp(1.0 / double(dimension) * cos_x);
+	return fit;
+      }
+    };
+
+
+
     /**
      * N-dimensional Ackley function
      * @brief \f$ 20 (1 - \exp(-0.2 * \sqrt{\frac{1}{N} \sum_{i=1}^{N} x_i^2})) + \exp(0) - \exp(\frac{1}{N} \sum_{i=1}^{N} \cos(2\pi x_i) )\f$

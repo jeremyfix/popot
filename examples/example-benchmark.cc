@@ -72,7 +72,7 @@ int main(int argc, char * argv[])
   if(!algo) 
     throw std::logic_error("The algorithm is not initialized");
 
-  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 2);
+  auto benchmark = popot::benchmark::make_benchmark(*algo, *problem, 50, 1);
   benchmark.run(1);
   std::cout << benchmark << std::endl;
 
