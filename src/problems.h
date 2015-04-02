@@ -179,7 +179,7 @@ namespace popot
       }
 
       size_t max_fe(void) {
-	return 10000*getDim();
+	return 1000*getDim();
       }
 
       double min_fitness(void) {
