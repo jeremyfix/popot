@@ -111,7 +111,7 @@ public:
     UBOUND_FUNC ubound;
     STOP_CRITERIA stop;
     COST_FUNCTION cost;
-    algo_type algo;
+    algo_type* algo;
 
     Wrapper_Stochastic_PSO_2006(size_t dim, const boost::python::object& lbound_func, const boost::python::object& ubound_func, const boost::python::object& stop_func, const boost::python::object& cost_func) :
     nbDim(dim),
@@ -128,11 +128,11 @@ public:
     {}
     
     double bestFitness() const {
-        return algo.getBestFitness();
+        return algo->getBestFitness();
     }
     
     boost::python::list bestParticule() {
-        auto v = algo.getBest().getPosition();
+        auto v = algo->getBest().getPosition();
         boost::python::list parameters;
         for (size_t i = 0; i < nbDim; ++i) {
             parameters.append(v[i]);
@@ -141,15 +141,15 @@ public:
     }
     
     size_t getEpoch() const {
-        return algo.getEpoch();
+        return algo->getEpoch();
     }
     
     void step() {
-      algo.step();
+      algo->step();
     }
     
     void run(int verbose) {
-        algo.run(verbose);
+        algo->run(verbose);
     }
 };
 

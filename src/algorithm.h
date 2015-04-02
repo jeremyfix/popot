@@ -53,12 +53,12 @@ namespace popot
 
     class Base {
     public:
-      Base(void);
-      virtual ~Base(void);
+      virtual void init(void) = 0;
+      virtual bool stop(void) = 0;
       virtual void step(void) = 0;
-      virtual void run(int verbose) = 0;
-      virtual double getBestFitness() const;
-      virtual void fillBestPosition(double *) const;
+      virtual void run(int verbose=0) = 0;
+      virtual double getBestFitness() const = 0;
+      virtual void fillBestPosition(double *) = 0;
     };
 
   }
@@ -88,7 +88,7 @@ namespace popot
 		typename UPDATE_VELOCITY_RULE, typename UPDATE_BEST_POSITION_RULE, 
 		typename CONFINE_FUNCTION, typename INIT_POSITION_FUNCTION, 
 		typename INIT_VELOCITY_FUNCTION, typename PARTICLE>
-      class Base
+	class Base : public popot::algorithm::Base
       {
       public:
 	typedef typename PARTICLE::BestType BestType;
@@ -348,12 +348,20 @@ namespace popot
 	 */
 	void run(int verbose=0)
 	{
-	  while(!_stop_criteria(getBest().getFitness(), epoch))
+	  while(!stop())
 	    {
 	      step();
 	      if(verbose) std::cout << '\r' << std::setw(6) << std::setfill('0') << epoch << " " << getBest().getFitness() << std::setw(5) << std::setfill(' ') << ' ' << std::flush;
 	    }
 	  if(verbose) std::cout << std::endl;
+	}
+
+
+	/**
+	 * Should we stop the algorithm ?
+	 */
+	bool stop() {
+	  return _stop_criteria(getBest().getFitness(), epoch);
 	}
 
 	/**
@@ -363,6 +371,17 @@ namespace popot
 	{
 	  return _best_particle;
 	}
+
+
+	/**
+	 * Fill in the best position in an array that we suppose has been 
+	 * previously allocated to the correct dimension
+	 */ 
+	void fillBestPosition(double * position) {
+	  auto values_ptr = getBest().getPosition().getValuesPtr();
+	  std::copy(values_ptr, values_ptr + _dimension, position);
+	}
+
 
 	/**
 	 * Returns the fitness of the best individual (Required for benchmarking)
@@ -570,7 +589,7 @@ namespace popot
 	   TOPOLOGY, UPDATE_POSITION_RULE, 
 	   UPDATE_VELOCITY_RULE, UPDATE_BEST_POSITION_RULE, 
 	   CONFINE_FUNCTION, INIT_POSITION_FUNCTION, 
-	   INIT_VELOCITY_FUNCTION, PARTICLE>
+	   INIT_VELOCITY_FUNCTION, PARTICLE>*
       base(size_t swarm_size,
 	   size_t dimension,
 	   const LBOUND_FUNC& lbound,
@@ -591,7 +610,7 @@ namespace popot
 	// the parameters above can be provided by reference
 	// as we anyway copy (some of) them in the constructor
 	
-	return Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION, 
+	return new Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION, 
 		    TOPOLOGY, UPDATE_POSITION_RULE, UPDATE_VELOCITY_RULE, UPDATE_BEST_POSITION_RULE, CONFINE_FUNCTION, INIT_POSITION_FUNCTION, INIT_VELOCITY_FUNCTION, PARTICLE>
 	  (swarm_size, dimension, lbound, ubound, stop, cost_function, topology, 
 	   update_position_rule, update_velocity_rule, update_best_position_rule, confine_function, init_position_function, init_velocity_function, p, evaluation_mode, reevaluate_best_before_updating);
@@ -606,7 +625,7 @@ namespace popot
     namespace algorithm
     {
       template<typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
-      class Base
+	class Base : public popot::algorithm::Base
       {
 	typedef popot::ABC::individuals::FoodSource FoodSourceType;
 
@@ -710,21 +729,15 @@ namespace popot
 	    _limitForScout(colony_size * dimension / 2), 
 	    _nb_employed(colony_size/2), 
 	    _nb_onlookers(colony_size/2), 
-	    _probabilities(0), 
-	    _foodSources(0), 
 	    _bestSource(), 
 	    _lbound(lbound), 
 	    _ubound(ubound), 
 	    _stop_criteria(stop_criteria), 
+	    _foodSources(0),
+	  _probabilities(0),
 	  _cost_function(cost_function)
 	{
-	  // Initialize our populations
-	  _foodSources = new FoodSourceType[_nb_employed];
-	  for(size_t i = 0 ; i < _nb_employed ; ++i)
-	    _foodSources[i] = FoodSourceType(_dimension);
-
-	  // And the probabilities of their solutions
-	  _probabilities = new double[_nb_employed];
+	  init();
 	}
 
 	virtual ~Base(void)
@@ -735,6 +748,20 @@ namespace popot
 
 	void init(void)
 	{
+	  // Initialize our populations
+	  if(_foodSources)
+	    delete[] _foodSources;
+
+	  _foodSources = new FoodSourceType[_nb_employed];
+	  for(size_t i = 0 ; i < _nb_employed ; ++i)
+	    _foodSources[i] = FoodSourceType(_dimension);
+
+	  // And the probabilities of their solutions
+	  if(_probabilities)
+	    delete[] _probabilities;
+	  _probabilities = new double[_nb_employed];
+
+
 	  // Initialize the positions and fitnesses
 	  // of the employed bees
 	  for(size_t i = 0 ; i < _nb_employed ; ++i)
@@ -770,17 +797,28 @@ namespace popot
 	  _epoch ++;
 	}
 
+	bool stop(void) {
+	  return _stop_criteria(_bestSource.getFValue(),_epoch);
+	}
+
 	FoodSourceType& getBest()
 	{
 	  return _bestSource;
 	}
 
-	void run(void)
+	void fillBestPosition(double * position) {
+	  auto values_ptr = _bestSource.getValuesPtr();
+	  std::copy(values_ptr, values_ptr + _dimension, position);
+	}
+
+	void run(int verbose = 0)
 	{
-	  while(!_stop_criteria(_bestSource.getFValue(),_epoch))
-	    {
+	  while(!stop()) 
 	      step();
-	    }
+	}
+
+	double getBestFitness() const {
+	  return _bestSource.getFValue();
 	}
 
 	void print(void)
@@ -804,11 +842,11 @@ namespace popot
      * ABC algorithm
      */
     template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
-    popot::ABC::algorithm::Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION> 
+    popot::ABC::algorithm::Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION> *
     abc(size_t colony_size, size_t dimension,
 	const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	const STOP_CRITERIA& stop, const COST_FUNCTION& func)  {
-      return popot::ABC::algorithm::Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(colony_size, dimension, lbound, ubound, stop, func);
+      return new popot::ABC::algorithm::Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(colony_size, dimension, lbound, ubound, stop, func);
     };
 
     // The parameters for updating the velocity of the particles
@@ -841,7 +879,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       spso2006(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
@@ -893,7 +931,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     spso2006(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -916,7 +954,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       stochastic_spso2006(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -938,7 +976,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     stochastic_spso2006(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -966,7 +1004,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       spso2007(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
@@ -1017,7 +1055,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     spso2007(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -1041,7 +1079,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     stochastic_spso2007(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -1065,7 +1103,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       stochastic_spso2007(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -1091,7 +1129,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       spso2011(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
@@ -1145,7 +1183,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     spso2011(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -1167,7 +1205,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
       stochastic_spso2011(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
@@ -1189,7 +1227,7 @@ namespace popot
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
-				ParticleSPSO>
+				ParticleSPSO>*
     stochastic_spso2011(size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {

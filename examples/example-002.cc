@@ -289,16 +289,16 @@ int main(int argc, char* argv[]) {
 					 );
 
   // Let's generate the graph of the connections within the swarm
-  algo.generateGraph("connections.dot");
+  algo->generateGraph("connections.dot");
 
 
   ////////////////////////////////////////:
   // Test before learning :
   printf("--------------------------------------------- \n Before learning : \n");
-  printf("Best fitness : %f \n", algo.getBest().getFitness());
+  printf("Best fitness : %f \n", algo->getBest().getFitness());
   
   for(size_t i = 0 ; i < p.nb_parameters ; ++i)
-    params[i] = algo.getBest().getPosition()[i];
+    params[i] = algo->getBest().getPosition()[i];
 
   for(size_t i = 0 ; i < p.nb_digits; ++i)
     {
@@ -319,18 +319,18 @@ int main(int argc, char* argv[]) {
 
   ////////////////////////////////////////:
   // We now iterate the algorithm
-  algo.run();
-  std::cout << "epoch : " << algo.epoch << std::endl;
+  algo->run();
+  std::cout << "epoch : " << algo->epoch << std::endl;
   std::cout << "\n" << std::endl;
 
   ////////////////////////////////////////:
   // Test after learning :
   printf("--------------------------------------------- \n After learning : \n");
-  printf("Best fitness : %f \n", algo.getBest().getFitness());
+  printf("Best fitness : %f \n", algo->getBest().getFitness());
 
   // Get the best parameters
   for(size_t i = 0 ; i < p.nb_parameters ; ++i)
-    params[i] = algo.getBest().getPosition()[i];
+    params[i] = algo->getBest().getPosition()[i];
 
   // And test them on our inputs
   odd_numbers.clear();

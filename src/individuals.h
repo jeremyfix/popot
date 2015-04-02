@@ -847,7 +847,7 @@ namespace popot
 	template<typename COST_FUNCTION>
 	  void computeFitness(const COST_FUNCTION& cost_function)  {
 	  // Compute the fitness
-	  _fvalue = cost_function(this->getValuesPtr());
+	  _fvalue = cost_function(*this);
 	  _fitness = fitnessFunction(_fvalue);
 	}
 
@@ -863,7 +863,7 @@ namespace popot
 	  return _fitness;
 	}
 
-	double getFValue(void)
+	double getFValue(void) const
 	{
 	  return _fvalue;
 	}
