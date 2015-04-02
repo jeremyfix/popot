@@ -620,6 +620,56 @@ namespace popot
     } // namespace algorithm
   } // namespace PSO
 
+
+  namespace harmony {
+    namespace algorithm
+    {
+
+      template<typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      class Harmony : public popot::algorithm::Base {
+
+      private:
+	int _dimension;
+	const LBOUND_FUNC& _lbound;
+	const UBOUND_FUNC& _ubound;
+	const STOP_CRITERIA& _stop_criteria;
+	const COST_FUNCTION& _cost_function;
+	
+      public:
+      
+      Harmony(int dimension, const LBOUND_FUNC &lbound, const UBOUND_FUNC &ubound, const STOP_CRITERIA &stop_criteria, const COST_FUNCTION &cost_function): popot::algorithm::Base(), 
+	  _dimension(dimension), _lbound(lbound), _ubound(ubound), _stop_criteria(stop_criteria), _cost_function(cost_function) {
+	}
+
+	void init(void)  {
+	}
+
+	bool stop(void) {
+	}
+
+	void step(void){
+	  double * x = new double[_dimension];
+	  _cost_function(x);
+
+	}
+
+	void run(int verbose=0) {
+	}
+
+	double getBestFitness() const {
+	  return 1e-15;
+	}
+
+	void fillBestPosition(double * x) {
+	  for(unsigned int i = 0 ;i < _dimension; ++i) {
+	    x[i] = 0;
+	  }
+	}
+
+      };
+    }
+  }
+
   namespace ABC
   {
     namespace algorithm
@@ -837,6 +887,18 @@ namespace popot
 
   namespace algorithm
   {
+
+    /**
+     * Harmony algorithm
+     */ 
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>*
+      harmony(size_t dimension,
+	      const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
+	      const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
+      return new popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(dimension, lbound, ubound, stop, func);
+    }
+
 
     /**
      * ABC algorithm

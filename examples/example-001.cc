@@ -30,11 +30,22 @@ int main(int argc, char* argv[]) {
   
   // Let's create a swarm 
   // we might use spso2006, spso2007 or spso2011
-
+  /*
   auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
   auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
   auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
   auto cost_function = [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());};
+  */
+  auto lbound = [] (size_t index) -> double { return -10; };
+  auto ubound = [] (size_t index) -> double { return 10; };
+  auto stop =   [] (double fitness, int epoch) -> bool { return fitness < 1e-4;};
+  auto cost_function = [dimension] (TVector &pos) -> double { 
+    double res = 0.0;
+    for(unsigned int i = 0 ; i < dimension ; ++i) {
+      double x = pos.getValuesPtr()[i];
+      res += (x-1)*(x-1);
+    }
+  };
 
   auto algo = popot::algorithm::spso2011(dimension, lbound, ubound, stop, cost_function);
 
