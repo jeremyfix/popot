@@ -1,27 +1,24 @@
 /*
-  This file is part of popot.
+    This file is part of popot.
+    Copyright (C) 2014  Jeremy Fix, CentraleSupelec
 
-  Copyright (C) 2014, Jeremy Fix, CentraleSupelec
+    Author : Jeremy Fix
 
-  Author : Jeremy Fix
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-  popot is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  any later version.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-  popot is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Lesser General Public License for more details.
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-  You should have received a copy of the GNU Lesser General Public License
-  along with popot.  If not, see <http://www.gnu.org/licenses/>.
-
-  Contact : Jeremy.Fix@centralesupelec.fr
+    Contact : Jeremy.Fix@centralesupelec.Fr
 */
-
-
 
 #ifndef POPOT_ALGORITHM_H
 #define POPOT_ALGORITHM_H
@@ -620,6 +617,56 @@ namespace popot
     } // namespace algorithm
   } // namespace PSO
 
+
+  namespace harmony {
+    namespace algorithm
+    {
+
+      template<typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      class Harmony : public popot::algorithm::Base {
+
+      private:
+	int _dimension;
+	const LBOUND_FUNC& _lbound;
+	const UBOUND_FUNC& _ubound;
+	const STOP_CRITERIA& _stop_criteria;
+	const COST_FUNCTION& _cost_function;
+	
+      public:
+      
+      Harmony(int dimension, const LBOUND_FUNC &lbound, const UBOUND_FUNC &ubound, const STOP_CRITERIA &stop_criteria, const COST_FUNCTION &cost_function): popot::algorithm::Base(), 
+	  _dimension(dimension), _lbound(lbound), _ubound(ubound), _stop_criteria(stop_criteria), _cost_function(cost_function) {
+	}
+
+	void init(void)  {
+	}
+
+	bool stop(void) {
+	}
+
+	void step(void){
+	  double * x = new double[_dimension];
+	  _cost_function(x);
+
+	}
+
+	void run(int verbose=0) {
+	}
+
+	double getBestFitness() const {
+	  return 1e-15;
+	}
+
+	void fillBestPosition(double * x) {
+	  for(unsigned int i = 0 ;i < _dimension; ++i) {
+	    x[i] = 0;
+	  }
+	}
+
+      };
+    }
+  }
+
   namespace ABC
   {
     namespace algorithm
@@ -837,6 +884,18 @@ namespace popot
 
   namespace algorithm
   {
+
+    /**
+     * Harmony algorithm
+     */ 
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>*
+      harmony(size_t dimension,
+	      const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
+	      const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
+      return new popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(dimension, lbound, ubound, stop, func);
+    }
+
 
     /**
      * ABC algorithm

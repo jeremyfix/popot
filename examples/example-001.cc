@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   
   // Let's create a swarm 
   // we might use spso2006, spso2007 or spso2011
-
+  
   auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
   auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
   auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
