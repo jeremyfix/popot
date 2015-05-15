@@ -98,7 +98,8 @@ namespace popot
 	    throw popot::Exception::IndexOutOfRange(i, size());
 	}
 
-	BestType * findBest(void)
+	template<typename COMPARISON_FUNCTION>
+	BestType * findBest(const COMPARISON_FUNCTION& compare)
 	{
 	  if(_particles.size() == 0)
 	    throw popot::Exception::FindBestFromEmptyNeighborhood();
@@ -106,7 +107,7 @@ namespace popot
 	  _best_particle = &(_particles[0]->getBestPosition());
 	  for(unsigned int i = 1 ; i < _particles.size() ; ++i)
 	    {
-	      if(_particles[i]->getBestPosition().compare(*_best_particle) < 0)
+	      if(compare(_particles[i]->getBestPosition(), *_best_particle) < 0)
 		_best_particle = &(_particles[i]->getBestPosition());
 	    }
 
@@ -118,7 +119,7 @@ namespace popot
 	  if(_best_particle == 0)
 	    throw popot::Exception::BestParticleNotInitialized();
 
-	  if(p->getBestPosition()->compare(*_best_particle) < 0)
+	  if((*p->getBestPosition()) < (*_best_particle))
 	    _best_particle = &(p->getBestPosition());
 	}
 

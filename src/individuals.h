@@ -28,6 +28,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <numeric>
+#include <list>
 
 #include "maths.h"
 #include "neighborhood.h"
@@ -261,8 +263,7 @@ namespace popot
 
 	/**
 	 * Recompute the fitness
-	 */
-	
+	 */      
 	template< typename COST_FUNCTION>
 	double evaluateFitness(const COST_FUNCTION& cost_function)
 	{
@@ -274,10 +275,12 @@ namespace popot
 	/**
 	 * Comparison of two particles through the fitness
 	 */
+	  /*
 	bool operator<(const Base &p) const
 	{
-	  return (compare(p) < 0);
+	  return (compare(&p) < 0);
 	}
+	  */
 
 	/**
 	 * Comparison of the fitness of two particles p1.compare(p2)
@@ -285,10 +288,11 @@ namespace popot
 	 * @return 1 if p1.f > p2.f
 	 * @return 0 otherwise
 	 */
-	virtual int compare(const Base& p) const
+	  /*
+	virtual int compare(const Base* p) const
 	{
 	  double myfitness = getFitness();
-	  double otherfitness = p.getFitness();
+	  double otherfitness = p->getFitness();
 	  if(myfitness < otherfitness)
 	    return -1;
 	  else if(myfitness > otherfitness)
@@ -296,6 +300,7 @@ namespace popot
 	  else
 	    return 0;
 	}
+	  */
 
 	/**
 	 * Prints the current position + fitness
@@ -329,14 +334,11 @@ namespace popot
       // Particle introduces the notion
       // of neighborhood, velocity and best position
       template<typename TVECTOR_TYPE=Vector<double> >
-	class Particle : public Base<TVECTOR_TYPE>
-	{
-	private:
+      class Particle : public Base<TVECTOR_TYPE> {
+	public:
 	typedef Base<TVECTOR_TYPE> TSuper;
 	typedef Particle<TVECTOR_TYPE> ThisParticleType;
-
-	public:
-	typedef TSuper BestType;
+	typedef Base<TVECTOR_TYPE> BestType;
 	typedef popot::PSO::neighborhood::Neighborhood< ThisParticleType > NeighborhoodType;
 
 	TVECTOR_TYPE _velocity;
@@ -447,14 +449,307 @@ namespace popot
 
 	};
 
+      
+     //  template<typename TVECTOR_TYPE=Vector<double>, typename COST_FUNCTION>
+     //  class StochasticBase {
+     // 	protected:
+     // 	TVECTOR_TYPE _position;
+     // 	double _fitness; // The mean fitness
+     // 	std::list<double> _fitnesses;
+     // 	COST_FUNCTION& _cost_function;
+
+     // 	public:
+     // 	typedef TVECTOR_TYPE VECTOR_TYPE;
+
+     // 	StochasticBase(COST_FUNCTION& cost_function)
+     // 	: _position(),
+     // 	  _fitness(0),
+     // 	  _cost_function(cost_function);
+     // 	{}
+
+     // 	/**
+     // 	 * Default constructor
+     // 	 */
+     // 	StochasticBase(size_t dimension, COST_FUNCTION& cost_function)
+     // 	  : _position(dimension),
+     // 	    _fitness(0),
+     // 	    _cost_function(cost_function)
+     // 	{}
+
+     // 	/**
+     // 	 * Copy constructor
+     // 	 */
+     // 	StochasticBase(const StochasticBase & other) 
+     // 	  : _position(other._position),
+     // 	    _fitness(other._fitness),
+     // 	    _fitnesses(other._fitnesses),
+     // 	    _cost_function(other._cost_function)
+     // 	{}
+
+     // 	/**
+     // 	 * Destructor
+     // 	 */
+     // 	virtual ~StochasticBase(void)
+     // 	{}
+
+     // 	/**
+     // 	 * Assignement operator
+     // 	 */
+     // 	StochasticBase & operator=(const StochasticBase &other)
+     // 	{
+     // 	  if (this == &other) 
+     // 	    return *this;
+
+     // 	  _position = other._position;
+     // 	  _fitness = other._fitness;
+     // 	  _fitnesses = other._fitnesses;
+     // 	  return *this;
+     // 	}
+
+     // 	/**
+     // 	 * Getter on the position
+     // 	 */
+     // 	TVECTOR_TYPE& getPosition()
+     // 	{
+     // 	  return _position;
+     // 	}
+
+     // 	/**
+     // 	 * Returns the currently known fitness
+     // 	 */
+     // 	double getFitness(void) const
+     // 	{
+     // 	  return _fitness;
+     // 	}
+
+     // 	/**
+     // 	 * Clear the collection of fitnesses
+     // 	 * especially when the particle moves
+     // 	 */
+     // 	void clearFitnesses(void) {
+     // 	  _fitnesses.clear();
+     // 	}
+
+     // 	/**
+     // 	 * Set the fitness
+     // 	 */
+     // 	/*
+     // 	void setFitness(double f)
+     // 	{
+     // 	  _fitness = f;
+     // 	}
+     // 	*/
+
+     // 	/**
+     // 	 * Recompute the fitness
+     // 	 */      
+     // 	template< typename COST_F>
+     // 	double evaluateFitness(const COST_F& cost_function)
+     // 	{
+     // 	  _fitnesses.push_back(cost_function(this->getPosition()));
+     // 	  _fitness = std::accumulate(_fitnesses.begin(), _fitnesses.end(), 0) / double(_fitnesses.size());	    
+     // 	  return _fitness;
+     // 	}
+
+     // 	/**
+     // 	 * Comparison of two particles through the fitness
+     // 	 */
+     // 	bool operator<(const StochasticBase &p) const
+     // 	{
+     // 	  return (compare(&p) < 0);
+     // 	}
+
+     // 	/**
+     // 	 * Comparison of the mean fitness of two particles p1.compare(p2)
+     // 	 * To do something trickier, you will have to overload this method
+     // 	 * @return -1 if p1.f < p2.f
+     // 	 * @return 1 if p1.f > p2.f
+     // 	 * @return 0 otherwise
+     // 	 */
+     // 	virtual int compare(const StochasticBase* p) const
+     // 	{
+     // 	  double myfitness = getFitness();
+     // 	  double otherfitness = p->getFitness();
+     // 	  if(myfitness < otherfitness)
+     // 	    return -1;
+     // 	  else if(myfitness > otherfitness)
+     // 	    return 1;
+     // 	  else
+     // 	    return 0;
+     // 	}
+
+     // 	/**
+     // 	 * Prints the current position + fitness
+     // 	 */
+     // 	virtual void print(std::ostream & os) const
+     // 	{
+     // 	  os << "Position : " << this->_position;
+     // 	  os << " ; Fitness : " << this->getFitness();
+     // 	}
+
+     // 	/**
+     // 	 * Serialization operator 
+     // 	 */
+     // 	friend std::ostream & operator <<(std::ostream & os, const StochasticBase &v)
+     // 	{
+     // 	  v.print(os);
+     // 	  return os;
+     // 	}
+	
+     // 	void save(std::ofstream& outfile) {
+     // 	  _position.save(outfile);
+     // 	}
+
+     // 	void load(std::ifstream& infile) {
+     // 	  _position.load(infile);
+     // 	}
+
+     //  };
+
+
+     //  template<typename TVECTOR_TYPE=Vector<double> >
+     //  class StochasticParticle : public StochasticBase<TVECTOR_TYPE> {
+
+     // private:
+     // 	typedef StochasticBase<TVECTOR_TYPE> TSuper;
+     // 	typedef StochasticParticle<TVECTOR_TYPE> ThisParticleType;
+
+     // 	public:
+     // 	typedef StochasticBase<TVECTOR_TYPE> BestType;
+     // 	typedef popot::PSO::neighborhood::Neighborhood< ThisParticleType > NeighborhoodType;
+
+     // 	TVECTOR_TYPE _velocity;
+     // 	BestType _best_position;
+     // 	NeighborhoodType _neighborhood;
+	  
+     // 	public:
+
+     // 	/**
+     // 	 * Default constructor, dimension=0 is assumed
+     // 	 */
+     // 	StochasticParticle() 
+     // 	: TSuper(),
+     // 	_best_position(),
+     // 	_neighborhood()
+     // 	{}
+
+     // 	/**
+     // 	 * Default constructor
+     // 	 */
+     // 	StochasticParticle(size_t dimension) 
+     // 	: TSuper(dimension), 
+     // 	_velocity(dimension),
+     // 	_best_position(dimension),
+     // 	_neighborhood()
+     // 	{}
+
+     // 	/**
+     // 	 * Copy constructor
+     // 	 */
+     // 	StochasticParticle(const StochasticParticle& other) 
+     // 	: TSuper(other), 
+     // 	_velocity(other._velocity),
+     // 	_best_position(other._best_position),
+     // 	_neighborhood(other._neighborhood)
+     // 	{}
+
+     // 	/**
+     // 	 * Destructor
+     // 	 */
+     // 	virtual ~StochasticParticle(void)
+     // 	{}
+
+     // 	/**
+     // 	 * Getter on the velocity
+     // 	 */
+     // 	TVECTOR_TYPE& getVelocity(void)
+     // 	{
+     // 	  return _velocity;
+     // 	}
+
+     // 	/**
+     // 	 * Initialization of the best position to the current position
+     // 	 */
+     // 	void initBestPosition()
+     // 	{
+     // 	  _best_position = *this;
+     // 	}
+
+     // 	/**
+     // 	 * Returns a reference to the current best position
+     // 	 */
+     // 	BestType& getBestPosition(void)
+     // 	{
+     // 	  return this->_best_position;
+     // 	}
+
+     // 	/**
+     // 	 * Returns a pointer to the neighborhood of the particle
+     // 	 */
+     // 	NeighborhoodType& getNeighborhood(void)
+     // 	{
+     // 	  return _neighborhood;
+     // 	}
+	  
+     // 	/**
+     // 	 * Display the current position+fitness
+     // 	 * and the current best position + fitness
+     // 	 */
+     // 	virtual void print(std::ostream & os) const
+     // 	{
+     // 	  TSuper::print(os);
+     // 	  os << "; Velocity : " << _velocity;
+     // 	  os << "; Best position : " << _best_position;
+     // 	}
+
+     // 	void save(std::ofstream& outfile) {
+     // 	  // We dump the current position
+     // 	  TSuper::save(outfile);
+
+     // 	  // the current velocity
+     // 	  _velocity.save(outfile);
+
+     // 	  // and the best position
+     // 	  _best_position.save(outfile);
+     // 	}
+
+     // 	void load(std::ifstream& infile) {
+     // 	  // load the current position
+     // 	  TSuper::load(infile);
+
+     // 	  // the velocity
+     // 	  _velocity.load(infile);
+
+     // 	  // and the best position
+     // 	  _best_position.load(infile);
+     // 	}
+
+     //  };
+
+
+
+
       // Generic utilitary functions used to templatify the particles
 
       template<typename PARTICLE>
-	void updateBestPosition(PARTICLE& p)
+      int compareFitness(PARTICLE& p1, PARTICLE& p2) {
+	  double p1fitness = p1.getFitness();
+	  double p2fitness = p2.getFitness();
+	  if(p1fitness < p2fitness)
+	    return -1;
+	  else if(p1fitness > p2fitness)
+	    return 1;
+	  else
+	    return 0;
+      }
+    
+
+      template<typename PARTICLE, typename COMPARISON_FUNCTION>
+      void updateBestPosition(PARTICLE& p, const COMPARISON_FUNCTION& compare)
 	{
 	  // Update the best position the particle ever had
 	  // with a copy of the current position
-	  if(p.compare(p.getBestPosition()) < 0)
+	  if(compare(p, p.getBestPosition()) < 0)
 	    p._best_position = p;
 	}
 

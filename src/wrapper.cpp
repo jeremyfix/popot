@@ -87,6 +87,7 @@ struct COST_FUNCTION {
     }
 };
 
+/*
 class Wrapper_Stochastic_PSO_2006 {
 private:
     typedef popot::PSO::particle::Particle<> ParticleSPSO;
@@ -152,12 +153,13 @@ public:
         algo->run(verbose);
     }
 };
+*/
 
 void seed(unsigned long seed) {
     RNG_GENERATOR::rng_srand(seed);
     RNG_GENERATOR::rng_warm_up();
 }
-
+/*
 BOOST_PYTHON_MODULE(libPyPopot) {
     using namespace boost::python;
     def("seed", seed, (boost::python::arg("seed")));
@@ -169,4 +171,4 @@ BOOST_PYTHON_MODULE(libPyPopot) {
         .def("run", &Wrapper_Stochastic_PSO_2006::run, (boost::python::arg("verbose")))
         ;
     
-}
+}*/

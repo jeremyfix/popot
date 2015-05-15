@@ -8,7 +8,7 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 #include "popot.h"
 
 // Define the vector type and the problem
-typedef popot::algorithm::ParticleSPSO::VECTOR_TYPE TVector;
+typedef popot::Vector<double> TVector;
 typedef popot::problems::Ackley Problem;
 
 int main(int argc, char * argv[])
@@ -29,7 +29,7 @@ int main(int argc, char * argv[])
   auto cost_function = [&p] (TVector &pos) -> double { return p.evaluate(pos.getValuesPtr());};
 
 
-  size_t colony_size = 50; 
+  size_t colony_size = 20; 
   auto algo = popot::algorithm::abc(colony_size, dimension,
 				    lbound, ubound,
 				    stop, cost_function);

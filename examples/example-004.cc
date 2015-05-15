@@ -3,6 +3,8 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 
 #include "popot.h"
 
+//typedef popot::algorithm::StochasticParticleSPSO::VECTOR_TYPE TVector;
+typedef popot::algorithm::ParticleSPSO::VECTOR_TYPE TVector;
 typedef popot::problems::Ackley Problem;
 
 int main(int argc, char* argv[]) {
@@ -17,11 +19,12 @@ int main(int argc, char* argv[]) {
   auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
   auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
   auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
-  auto cost_function = [&p] (double* pos) -> double { return p.evaluate(pos);};
+  auto cost_function = [&p] (TVector& pos) -> double { return p.evaluate(pos.getValuesPtr());};
 
-  auto algo = popot::algorithm::harmony(dimension, lbound, ubound, stop, cost_function);
+  //auto algo = popot::algorithm::stochastic_spso2006(dimension, lbound, ubound, stop, cost_function);
+  auto algo = popot::algorithm::spso2006(dimension, lbound, ubound, stop, cost_function);
 
-  algo->run();
+  algo->run(1);
 
   delete algo;
 }
