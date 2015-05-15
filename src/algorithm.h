@@ -938,8 +938,8 @@ namespace popot
 					std::map< size_t, std::vector<size_t> > &),
 				  void(*)(ParticleSPSO&),
 				  void(*)(ParticleSPSO&), 
-				  void(*)(ParticleSPSO&),
-				  int(*)(ParticleSPSO&, ParticleSPSO&),
+				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
+				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -952,7 +952,7 @@ namespace popot
       ParticleSPSO p;
 
       // Comparison function between particles
-      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO>;
+      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
 
       // Position and velocity updates
       auto position_update = popot::PSO::particle::updatePosition<ParticleSPSO>;
@@ -966,7 +966,7 @@ namespace popot
       auto confine = popot::confinement::confine<ParticleSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO>;
+      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, decltype(comparison_function)>;
 
       // Topology
       //auto topology = popot::PSO::topology::full_fillNeighborhoods<ParticleSPSO>;
@@ -994,8 +994,8 @@ namespace popot
 					std::map< size_t, std::vector<size_t> > &),
 				void(*)(ParticleSPSO&),
 				void(*)(ParticleSPSO&), 
-				void(*)(ParticleSPSO&),
-				  int(*)(ParticleSPSO&, ParticleSPSO&),
+				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
+				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1125,9 +1125,9 @@ namespace popot
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
 				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&), 
 				void(*)(ParticleSPSO&),
-				  int(*)(ParticleSPSO&, ParticleSPSO&),
+				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
+				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&), 
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1140,7 +1140,7 @@ namespace popot
       ParticleSPSO p;
 
      // Comparison function between particles
-      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO>;
+      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
 
       // Position and velocity updates
       auto position_update = popot::PSO::particle::updatePosition<ParticleSPSO>;
@@ -1154,7 +1154,7 @@ namespace popot
       auto confine = popot::confinement::confine<ParticleSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO>;
+      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, decltype(comparison_function)>;
 
 
       // Topology
@@ -1180,9 +1180,9 @@ namespace popot
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
 				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&), 
 				void(*)(ParticleSPSO&),
-				  int(*)(ParticleSPSO&, ParticleSPSO&),
+				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
+				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1290,8 +1290,6 @@ namespace popot
 
       // The rule to update the best position
       auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, decltype(comparison_function)>;
-
-      //auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)>;
 
 
       // Topology
