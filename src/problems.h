@@ -344,7 +344,7 @@ namespace popot
      * @brief \f$ \sum_{i=1}^{N} (i x_i^4 + n_i)\f$
      * \f$ n_i \sim U(0,1)\f$ , Bounds [-1.28,1.28]
      */
-    class QuarticNoise : Base
+    class QuarticNoise : public Base
     { 
     public:
 
