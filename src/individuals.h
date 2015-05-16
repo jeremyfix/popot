@@ -291,10 +291,12 @@ namespace popot
 	
 	void save(std::ofstream& outfile) {
 	  _position.save(outfile);
+	  outfile << _fitness << std::endl;
 	}
 
 	void load(std::ifstream& infile) {
 	  _position.load(infile);
+	  infile >> _fitness;
 	}
 	
 	};
@@ -425,32 +427,45 @@ namespace popot
 	fitnesses.
        */
       template<typename TVECTOR_TYPE=Vector<double> >
-      class StochasticParticle : public Particle<TVECTOR_TYPE> {
+      class StochasticBase : public Base<TVECTOR_TYPE> {
      	protected:
-	typedef Particle<TVECTOR_TYPE> TSuper;
+	typedef Base<TVECTOR_TYPE> TSuper;
 	std::list<double> _fitnesses;
 
 
       public:
-     	StochasticParticle() : TSuper() {}
+     	StochasticBase() : TSuper() {}
 
-	StochasticParticle(size_t dimension):
+	StochasticBase(size_t dimension):
 	  TSuper(dimension) {}
 
-	StochasticParticle(const StochasticParticle& other):
+	StochasticBase(const StochasticBase& other):
 	  TSuper(other),
 	  _fitnesses(other._fitnesses) {}
 
-	virtual ~StochasticParticle() {}
+	virtual ~StochasticBase() {}
+
+	std::list<double>& getFitnesses(void) {
+	  return _fitnesses;
+	}
 
 	template< typename COST_FUNCTION>
 	double evaluateFitness(const COST_FUNCTION& cost_function)
 	{
-	  _fitness = cost_function(this->getPosition());
-	  return _fitness;
+	  _fitnesses.push_back(cost_function(this->getPosition()));
+	  this->_fitness = std::accumulate(_fitnesses.begin(), _fitnesses.end(), 0.0) / double(_fitnesses.size());
+	  return this->_fitness;
 	}
 
-
+	virtual void print(std::ostream & os) const
+	{
+	  TSuper::print(os);
+	  os << "; ";
+	  os << "Fitnesses : ";
+	  for(auto& f : _fitnesses)
+	    os << f << " ";
+	  os << std::endl;
+	}
 
    	void save(std::ofstream& outfile) {
 	  TSuper::save(outfile);
@@ -481,129 +496,126 @@ namespace popot
 
       };
 	
-  
-
-     //  };
 
 
-     //  template<typename TVECTOR_TYPE=Vector<double> >
-     //  class StochasticParticle : public StochasticBase<TVECTOR_TYPE> {
+      template<typename TVECTOR_TYPE=Vector<double> >
+      class StochasticParticle : public StochasticBase<TVECTOR_TYPE> {
 
-     // private:
-     // 	typedef StochasticBase<TVECTOR_TYPE> TSuper;
-     // 	typedef StochasticParticle<TVECTOR_TYPE> ThisParticleType;
+     private:
+     	typedef StochasticBase<TVECTOR_TYPE> TSuper;
+     	typedef StochasticParticle<TVECTOR_TYPE> ThisParticleType;
 
-     // 	public:
-     // 	typedef StochasticBase<TVECTOR_TYPE> BestType;
-     // 	typedef popot::PSO::neighborhood::Neighborhood< ThisParticleType > NeighborhoodType;
+     	public:
+     	typedef StochasticBase<TVECTOR_TYPE> BestType;
+     	typedef popot::PSO::neighborhood::Neighborhood< ThisParticleType > NeighborhoodType;
 
-     // 	TVECTOR_TYPE _velocity;
-     // 	BestType _best_position;
-     // 	NeighborhoodType _neighborhood;
+     	TVECTOR_TYPE _velocity;
+     	BestType _best_position;
+     	NeighborhoodType _neighborhood;
 	  
-     // 	public:
+     	public:
 
-     // 	/**
-     // 	 * Default constructor, dimension=0 is assumed
-     // 	 */
-     // 	StochasticParticle() 
-     // 	: TSuper(),
-     // 	_best_position(),
-     // 	_neighborhood()
-     // 	{}
+     	/**
+     	 * Default constructor, dimension=0 is assumed
+     	 */
+     	StochasticParticle() 
+     	: TSuper(),
+     	_best_position(),
+     	_neighborhood()
+     	{}
 
-     // 	/**
-     // 	 * Default constructor
-     // 	 */
-     // 	StochasticParticle(size_t dimension) 
-     // 	: TSuper(dimension), 
-     // 	_velocity(dimension),
-     // 	_best_position(dimension),
-     // 	_neighborhood()
-     // 	{}
+     	/**
+     	 * Default constructor
+     	 */
+     	StochasticParticle(size_t dimension) 
+     	: TSuper(dimension), 
+     	_velocity(dimension),
+     	_best_position(dimension),
+     	_neighborhood()
+     	{}
 
-     // 	/**
-     // 	 * Copy constructor
-     // 	 */
-     // 	StochasticParticle(const StochasticParticle& other) 
-     // 	: TSuper(other), 
-     // 	_velocity(other._velocity),
-     // 	_best_position(other._best_position),
-     // 	_neighborhood(other._neighborhood)
-     // 	{}
+     	/**
+     	 * Copy constructor
+     	 */
+     	StochasticParticle(const StochasticParticle& other) 
+     	: TSuper(other), 
+     	_velocity(other._velocity),
+     	_best_position(other._best_position),
+     	_neighborhood(other._neighborhood)
+     	{}
 
-     // 	/**
-     // 	 * Destructor
-     // 	 */
-     // 	virtual ~StochasticParticle(void)
-     // 	{}
+     	/**
+     	 * Destructor
+     	 */
+     	virtual ~StochasticParticle(void)
+     	{}
 
-     // 	/**
-     // 	 * Getter on the velocity
-     // 	 */
-     // 	TVECTOR_TYPE& getVelocity(void)
-     // 	{
-     // 	  return _velocity;
-     // 	}
+     	/**
+     	 * Getter on the velocity
+     	 */
+     	TVECTOR_TYPE& getVelocity(void)
+     	{
+     	  return _velocity;
+     	}
 
-     // 	/**
-     // 	 * Initialization of the best position to the current position
-     // 	 */
-     // 	void initBestPosition()
-     // 	{
-     // 	  _best_position = *this;
-     // 	}
+     	/**
+     	 * Initialization of the best position to the current position
+     	 */
+     	void initBestPosition()
+     	{
+     	  _best_position = *this;
+     	}
 
-     // 	/**
-     // 	 * Returns a reference to the current best position
-     // 	 */
-     // 	BestType& getBestPosition(void)
-     // 	{
-     // 	  return this->_best_position;
-     // 	}
+     	/**
+     	 * Returns a reference to the current best position
+     	 */
+     	BestType& getBestPosition(void)
+     	{
+     	  return this->_best_position;
+     	}
 
-     // 	/**
-     // 	 * Returns a pointer to the neighborhood of the particle
-     // 	 */
-     // 	NeighborhoodType& getNeighborhood(void)
-     // 	{
-     // 	  return _neighborhood;
-     // 	}
+     	/**
+     	 * Returns a pointer to the neighborhood of the particle
+     	 */
+     	NeighborhoodType& getNeighborhood(void)
+     	{
+     	  return _neighborhood;
+     	}
 	  
-     // 	/**
-     // 	 * Display the current position+fitness
-     // 	 * and the current best position + fitness
-     // 	 */
-     // 	virtual void print(std::ostream & os) const
-     // 	{
-     // 	  TSuper::print(os);
-     // 	  os << "; Velocity : " << _velocity;
-     // 	  os << "; Best position : " << _best_position;
-     // 	}
+     	/**
+     	 * Display the current position+fitness
+     	 * and the current best position + fitness
+     	 */
+     	virtual void print(std::ostream & os) const
+     	{
+     	  TSuper::print(os);
+     	  os << "; Velocity : " << _velocity;
+     	  os << "; Best position : " << _best_position;
+     	}
 
-     // 	void save(std::ofstream& outfile) {
-     // 	  // We dump the current position
-     // 	  TSuper::save(outfile);
+     	void save(std::ofstream& outfile) {
+     	  // We dump the current position
+     	  TSuper::save(outfile);
 
-     // 	  // the current velocity
-     // 	  _velocity.save(outfile);
+     	  // the current velocity
+     	  _velocity.save(outfile);
 
-     // 	  // and the best position
-     // 	  _best_position.save(outfile);
-     // 	}
+     	  // and the best position
+     	  _best_position.save(outfile);
+     	}
 
-     // 	void load(std::ifstream& infile) {
-     // 	  // load the current position
-     // 	  TSuper::load(infile);
+     	void load(std::ifstream& infile) {
+     	  // load the current position
+     	  TSuper::load(infile);
 
-     // 	  // the velocity
-     // 	  _velocity.load(infile);
+     	  // the velocity
+     	  _velocity.load(infile);
 
-     // 	  // and the best position
-     // 	  _best_position.load(infile);
-     // 	}
+     	  // and the best position
+     	  _best_position.load(infile);
+     	}
 
-     //  };
+      };
 
 
 
@@ -620,6 +632,25 @@ namespace popot
 	    return 1;
 	  else
 	    return 0;
+      }
+
+      template<typename PARTICLE, typename COST_FUNCTION>
+      int compareFitnessMonteCarlo(PARTICLE& p1, PARTICLE& p2, size_t nb_evaluations, const COST_FUNCTION& cost_function) {
+	while(p1.getFitnesses().size() < nb_evaluations)
+	  p1.evaluateFitness(cost_function);
+
+	while(p2.getFitnesses().size() < nb_evaluations)
+	  p2.evaluateFitness(cost_function);
+
+	double p1fitness = p1.getFitness(); // This is the mean fitness
+	double p2fitness = p2.getFitness(); // This is the mean fitness
+
+	if(p1fitness < p2fitness)
+	  return -1;
+	else if(p1fitness > p2fitness)
+	  return 1;
+	else
+	  return 0;
       }
     
 
