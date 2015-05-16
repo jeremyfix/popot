@@ -270,37 +270,6 @@ namespace popot
 	  _fitness = cost_function(this->getPosition());
 	  return _fitness;
 	}
-	
-
-	/**
-	 * Comparison of two particles through the fitness
-	 */
-	  /*
-	bool operator<(const Base &p) const
-	{
-	  return (compare(&p) < 0);
-	}
-	  */
-
-	/**
-	 * Comparison of the fitness of two particles p1.compare(p2)
-	 * @return -1 if p1.f < p2.f
-	 * @return 1 if p1.f > p2.f
-	 * @return 0 otherwise
-	 */
-	  /*
-	virtual int compare(const Base* p) const
-	{
-	  double myfitness = getFitness();
-	  double otherfitness = p->getFitness();
-	  if(myfitness < otherfitness)
-	    return -1;
-	  else if(myfitness > otherfitness)
-	    return 1;
-	  else
-	    return 0;
-	}
-	  */
 
 	/**
 	 * Prints the current position + fitness
@@ -450,159 +419,69 @@ namespace popot
 	};
 
       
-     //  template<typename TVECTOR_TYPE=Vector<double>, typename COST_FUNCTION>
-     //  class StochasticBase {
-     // 	protected:
-     // 	TVECTOR_TYPE _position;
-     // 	double _fitness; // The mean fitness
-     // 	std::list<double> _fitnesses;
-     // 	COST_FUNCTION& _cost_function;
+      /*
+	Stochastic Particle cannot inherit from Particle
+	Because the BestPosition must also have a collection of
+	fitnesses.
+       */
+      template<typename TVECTOR_TYPE=Vector<double> >
+      class StochasticParticle : public Particle<TVECTOR_TYPE> {
+     	protected:
+	typedef Particle<TVECTOR_TYPE> TSuper;
+	std::list<double> _fitnesses;
 
-     // 	public:
-     // 	typedef TVECTOR_TYPE VECTOR_TYPE;
 
-     // 	StochasticBase(COST_FUNCTION& cost_function)
-     // 	: _position(),
-     // 	  _fitness(0),
-     // 	  _cost_function(cost_function);
-     // 	{}
+      public:
+     	StochasticParticle() : TSuper() {}
 
-     // 	/**
-     // 	 * Default constructor
-     // 	 */
-     // 	StochasticBase(size_t dimension, COST_FUNCTION& cost_function)
-     // 	  : _position(dimension),
-     // 	    _fitness(0),
-     // 	    _cost_function(cost_function)
-     // 	{}
+	StochasticParticle(size_t dimension):
+	  TSuper(dimension) {}
 
-     // 	/**
-     // 	 * Copy constructor
-     // 	 */
-     // 	StochasticBase(const StochasticBase & other) 
-     // 	  : _position(other._position),
-     // 	    _fitness(other._fitness),
-     // 	    _fitnesses(other._fitnesses),
-     // 	    _cost_function(other._cost_function)
-     // 	{}
+	StochasticParticle(const StochasticParticle& other):
+	  TSuper(other),
+	  _fitnesses(other._fitnesses) {}
 
-     // 	/**
-     // 	 * Destructor
-     // 	 */
-     // 	virtual ~StochasticBase(void)
-     // 	{}
+	virtual ~StochasticParticle() {}
 
-     // 	/**
-     // 	 * Assignement operator
-     // 	 */
-     // 	StochasticBase & operator=(const StochasticBase &other)
-     // 	{
-     // 	  if (this == &other) 
-     // 	    return *this;
+	template< typename COST_FUNCTION>
+	double evaluateFitness(const COST_FUNCTION& cost_function)
+	{
+	  _fitness = cost_function(this->getPosition());
+	  return _fitness;
+	}
 
-     // 	  _position = other._position;
-     // 	  _fitness = other._fitness;
-     // 	  _fitnesses = other._fitnesses;
-     // 	  return *this;
-     // 	}
 
-     // 	/**
-     // 	 * Getter on the position
-     // 	 */
-     // 	TVECTOR_TYPE& getPosition()
-     // 	{
-     // 	  return _position;
-     // 	}
 
-     // 	/**
-     // 	 * Returns the currently known fitness
-     // 	 */
-     // 	double getFitness(void) const
-     // 	{
-     // 	  return _fitness;
-     // 	}
+   	void save(std::ofstream& outfile) {
+	  TSuper::save(outfile);
 
-     // 	/**
-     // 	 * Clear the collection of fitnesses
-     // 	 * especially when the particle moves
-     // 	 */
-     // 	void clearFitnesses(void) {
-     // 	  _fitnesses.clear();
-     // 	}
+	  size_t i = 0;
+	  size_t size = _fitnesses.size();
+	  outfile << size << " ";
+	  for(auto& f: _fitnesses) {
+	    outfile << f ;
+	    if(i < size - 1)
+	      outfile << " ";
+	    else 
+	      outfile << std::endl;
+	    ++i;
+	  }
+     	}
 
-     // 	/**
-     // 	 * Set the fitness
-     // 	 */
-     // 	/*
-     // 	void setFitness(double f)
-     // 	{
-     // 	  _fitness = f;
-     // 	}
-     // 	*/
+     	void load(std::ifstream& infile) {
+	  TSuper::load(infile);
+	  size_t size;
+	  infile >> size;
+	  for(size_t i = 0 ; i < size; ++i) {
+	    double f;
+	    infile >> f;
+	    _fitnesses.push_back(f);
+	  }
+     	}
 
-     // 	/**
-     // 	 * Recompute the fitness
-     // 	 */      
-     // 	template< typename COST_F>
-     // 	double evaluateFitness(const COST_F& cost_function)
-     // 	{
-     // 	  _fitnesses.push_back(cost_function(this->getPosition()));
-     // 	  _fitness = std::accumulate(_fitnesses.begin(), _fitnesses.end(), 0) / double(_fitnesses.size());	    
-     // 	  return _fitness;
-     // 	}
-
-     // 	/**
-     // 	 * Comparison of two particles through the fitness
-     // 	 */
-     // 	bool operator<(const StochasticBase &p) const
-     // 	{
-     // 	  return (compare(&p) < 0);
-     // 	}
-
-     // 	/**
-     // 	 * Comparison of the mean fitness of two particles p1.compare(p2)
-     // 	 * To do something trickier, you will have to overload this method
-     // 	 * @return -1 if p1.f < p2.f
-     // 	 * @return 1 if p1.f > p2.f
-     // 	 * @return 0 otherwise
-     // 	 */
-     // 	virtual int compare(const StochasticBase* p) const
-     // 	{
-     // 	  double myfitness = getFitness();
-     // 	  double otherfitness = p->getFitness();
-     // 	  if(myfitness < otherfitness)
-     // 	    return -1;
-     // 	  else if(myfitness > otherfitness)
-     // 	    return 1;
-     // 	  else
-     // 	    return 0;
-     // 	}
-
-     // 	/**
-     // 	 * Prints the current position + fitness
-     // 	 */
-     // 	virtual void print(std::ostream & os) const
-     // 	{
-     // 	  os << "Position : " << this->_position;
-     // 	  os << " ; Fitness : " << this->getFitness();
-     // 	}
-
-     // 	/**
-     // 	 * Serialization operator 
-     // 	 */
-     // 	friend std::ostream & operator <<(std::ostream & os, const StochasticBase &v)
-     // 	{
-     // 	  v.print(os);
-     // 	  return os;
-     // 	}
+      };
 	
-     // 	void save(std::ofstream& outfile) {
-     // 	  _position.save(outfile);
-     // 	}
-
-     // 	void load(std::ifstream& infile) {
-     // 	  _position.load(infile);
-     // 	}
+  
 
      //  };
 
