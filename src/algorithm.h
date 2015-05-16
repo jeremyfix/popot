@@ -118,8 +118,6 @@ namespace popot
 	const INIT_POSITION_FUNCTION _init_position_function;
 	const INIT_VELOCITY_FUNCTION _init_velocity_function;
 
-	const bool _reevaluate_best_before_updating;
-
 	EvaluationMode _evaluation_mode;
       public:
 	int epoch;
@@ -141,8 +139,7 @@ namespace popot
 	     const INIT_POSITION_FUNCTION init_position_function,
 	     const INIT_VELOCITY_FUNCTION init_velocity_function,
 	     const PARTICLE& p,
-	     EvaluationMode evaluation_mode,
-	     bool reevaluate_best_before_updating) 
+	     EvaluationMode evaluation_mode) 
 	: particles_indexes(0),
 	  _best_particle(dimension),
 	  _dimension(dimension),
@@ -159,7 +156,6 @@ namespace popot
 	  _confine_function(confine_function),
 	  _init_position_function(init_position_function),
 	  _init_velocity_function(init_velocity_function),
-	  _reevaluate_best_before_updating(reevaluate_best_before_updating),
 	  _evaluation_mode(evaluation_mode),
 	  epoch(0),
 	  nb_new_neigh(0)
@@ -268,8 +264,6 @@ namespace popot
 	   	  particles[particle_index].evaluateFitness(_cost_function);
 		  //std::cout << "ok " << i << std::endl;
 	   	  // And see if we update the personal best
-		  if(_reevaluate_best_before_updating)
-		    particles[i].getBestPosition().evaluateFitness(_cost_function);
 		  //std::cout << "update best " << i << std::endl;
 		  _update_best_position_rule(particles[particle_index], _comparison_function);
 
@@ -303,11 +297,7 @@ namespace popot
 	      // update their velocity, we must ensure that, for a synchronous evaluation
 	      // updating the best is done after all the positions updates
 	      for(size_t i = 0 ; i < _swarm_size ; ++i)
-		{
-		  if(_reevaluate_best_before_updating)
-		    particles[i].getBestPosition().evaluateFitness(_cost_function);
 		  _update_best_position_rule(particles[i], _comparison_function);
-		}
 
 	      // We now update the best particle of all the neighborhoods
 	      for(size_t i = 0 ; i < neighborhoods.size() ; ++i)
@@ -605,8 +595,7 @@ namespace popot
 	   const INIT_POSITION_FUNCTION& init_position_function,
 	   const INIT_VELOCITY_FUNCTION& init_velocity_function,
 	   const PARTICLE& p,
-	   EvaluationMode evaluation_mode,
-	   bool reevaluate_best_before_updating)
+	   EvaluationMode evaluation_mode)
       {
 	// the parameters above can be provided by reference
 	// as we anyway copy (some of) them in the constructor
@@ -614,7 +603,7 @@ namespace popot
 	return new Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION, 
 			TOPOLOGY, UPDATE_POSITION_RULE, UPDATE_VELOCITY_RULE, UPDATE_BEST_POSITION_RULE, COMPARISON_FUNCTION,CONFINE_FUNCTION, INIT_POSITION_FUNCTION, INIT_VELOCITY_FUNCTION, PARTICLE>
 	  (swarm_size, dimension, lbound, ubound, stop, cost_function, topology, 
-	   update_position_rule, update_velocity_rule, update_best_position_rule, comparison_function, confine_function, init_position_function, init_velocity_function, p, evaluation_mode, reevaluate_best_before_updating);
+	   update_position_rule, update_velocity_rule, update_best_position_rule, comparison_function, confine_function, init_position_function, init_velocity_function, p, evaluation_mode);
       }
 
 
@@ -946,7 +935,7 @@ namespace popot
 				  ParticleSPSO>*
     spso2006(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
-	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
+	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
 
       // Particle type
       ParticleSPSO p;
@@ -979,7 +968,7 @@ namespace popot
       auto algo = popot::PSO::algorithm::base(swarm_size, dimension, 
 					      lbound, ubound, stop, cost_function, 
 					      topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
-					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION, reevaluate_best); 
+					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
       return algo;
     }
 
@@ -1005,7 +994,7 @@ namespace popot
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
 
       size_t swarm_size = 10 + int(2.0 * sqrt(dimension));
-      return spso2006(swarm_size, dimension, lbound, ubound, stop, cost_function, false);
+      return spso2006(swarm_size, dimension, lbound, ubound, stop, cost_function);
     }
 
     /*
@@ -1134,7 +1123,7 @@ namespace popot
 				ParticleSPSO>*
       spso2007(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
-	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
+	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
 
       // Particle type
       ParticleSPSO p;
@@ -1167,7 +1156,7 @@ namespace popot
       auto algo = popot::PSO::algorithm::base(swarm_size, dimension, 
 					      lbound, ubound, stop, cost_function, 
 					      topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
-					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION, reevaluate_best); 
+					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
       return algo;
     }
 
@@ -1193,7 +1182,7 @@ namespace popot
 
       size_t swarm_size = 10 + int(2.0 * sqrt(dimension));
 
-      return spso2007(swarm_size, dimension, lbound, ubound, stop, cost_function, false);
+      return spso2007(swarm_size, dimension, lbound, ubound, stop, cost_function);
     }
 
     /*
@@ -1268,7 +1257,7 @@ namespace popot
 				ParticleSPSO>*
       spso2011(size_t swarm_size, size_t dimension,
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
-	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function, bool reevaluate_best=false) {
+	       const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
 
       // Particle type
       ParticleSPSO p;
@@ -1302,7 +1291,7 @@ namespace popot
       auto algo = popot::PSO::algorithm::base(swarm_size, dimension, 
 					      lbound, ubound, stop, cost_function, 
 					      topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
-					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION, reevaluate_best); 
+					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
 
       return algo;
     }
@@ -1328,7 +1317,7 @@ namespace popot
 	     const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	     const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
 
-      return spso2011(40, dimension, lbound, ubound, stop, cost_function, false);
+      return spso2011(40, dimension, lbound, ubound, stop, cost_function);
     }
 
     /*
