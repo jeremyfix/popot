@@ -427,23 +427,48 @@ namespace popot
 	fitnesses.
        */
       template<typename TVECTOR_TYPE=Vector<double> >
-      class StochasticBase : public Base<TVECTOR_TYPE> {
+      class StochasticBase {
+	protected:
+	TVECTOR_TYPE _position;
+
      	public:
-	typedef Base<TVECTOR_TYPE> TSuper;
+	typedef TVECTOR_TYPE VECTOR_TYPE;
+	double _fitness;
 	std::list<double> _fitnesses;
 
 
       public:
-     	StochasticBase() : TSuper() {}
-
-	StochasticBase(size_t dimension):
-	  TSuper(dimension) {}
+      StochasticBase() : _position(), _fitness(0) {}
+	
+      StochasticBase(size_t dimension):
+	_position(dimension), _fitness(0) {}
 
 	StochasticBase(const StochasticBase& other):
-	  TSuper(other),
+	  _position(other._position),
+	  _fitness(other._fitness),
 	  _fitnesses(other._fitnesses) {}
 
 	virtual ~StochasticBase() {}
+
+	StochasticBase & operator=(const StochasticBase &other)
+	{
+	  if (this == &other) 
+	    return *this;
+
+	  _position = other._position;
+	  _fitness = other._fitness;
+	  _fitnesses = other._fitnesses;
+	  return *this;
+	}
+
+	/**
+	 * Getter on the position
+	 */
+	TVECTOR_TYPE& getPosition()
+	{
+	  return _position;
+	}
+
 
 	/**
 	 * Returns the currently known fitness
@@ -451,9 +476,19 @@ namespace popot
 	virtual double getFitness(void) const
 	{
 	  if(_fitnesses.size() == 0)
-	    throw std::exception();
+	    throw std::runtime_error("Trying to access the fitness of a stochastic particle but no evaluation has been performed yet ! ");
 	  return this->_fitness;
 	}
+
+	/**
+	 * Set the fitness
+	 */
+	/*
+	void setFitness(double f)
+	{
+	  _fitness = f;
+	}
+	*/
 
 	std::list<double>& getFitnesses(void) {
 	  return _fitnesses;
@@ -469,7 +504,8 @@ namespace popot
 
 	virtual void print(std::ostream & os) const
 	{
-	  TSuper::print(os);
+	  os << "Position : " << this->_position;
+	  os << " ; Fitness : " << this->getFitness();
 	  os << "; ";
 	  os << "Fitnesses : ";
 	  for(auto& f : _fitnesses)
@@ -477,8 +513,18 @@ namespace popot
 	  os << std::endl;
 	}
 
+	/**
+	 * Serialization operator 
+	 */
+	friend std::ostream & operator <<(std::ostream & os, const StochasticBase &v)
+	{
+	  v.print(os);
+	  return os;
+	}
+
    	void save(std::ofstream& outfile) {
-	  TSuper::save(outfile);
+	  _position.save(outfile);
+	  outfile << _fitness << std::endl;
 
 	  size_t i = 0;
 	  size_t size = _fitnesses.size();
@@ -494,7 +540,9 @@ namespace popot
      	}
 
      	void load(std::ifstream& infile) {
-	  TSuper::load(infile);
+	  _position.load(infile);
+	  infile >> _fitness;
+
 	  size_t size;
 	  infile >> size;
 	  for(size_t i = 0 ; i < size; ++i) {
@@ -671,6 +719,16 @@ namespace popot
 	    p._best_position = p;
 	}
 
+      template<typename PARTICLE, typename COMPARISON_FUNCTION>
+      void updateBestPositionStochastic(PARTICLE& p, const COMPARISON_FUNCTION& compare)
+	{
+	  // Update the best position the particle ever had
+	  // with a copy of the current position
+	  p.getBestPosition()._fitnesses.clear();
+	  if(compare(p, p.getBestPosition()) < 0)
+	    p._best_position = p;
+	}
+
 
       /**
        * Basic update of the position of a particle
@@ -684,6 +742,10 @@ namespace popot
 	
 	}
 
+      /**
+       * Basic update of the position of a stochastic particle
+       * As the position changes, we clear the fitnesses
+       */
       template<typename PARTICLE>
 	void updatePositionStochastic(PARTICLE& p)
 	{

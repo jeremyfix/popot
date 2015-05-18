@@ -82,7 +82,8 @@ namespace popot
       template< typename LBOUND_FUNC, typename UBOUND_FUNC, 
 		typename STOP_CRITERIA, typename COST_FUNCTION, 
 		typename TOPOLOGY, typename UPDATE_POSITION_RULE, 
-		typename UPDATE_VELOCITY_RULE, typename UPDATE_BEST_POSITION_RULE, typename COMPARISON_FUNCTION,
+		typename UPDATE_VELOCITY_RULE, typename UPDATE_BEST_POSITION_RULE, 
+		typename COMPARISON_FUNCTION,
 		typename CONFINE_FUNCTION, typename INIT_POSITION_FUNCTION, 
 		typename INIT_VELOCITY_FUNCTION, typename PARTICLE>
 	class Base : public popot::algorithm::Base
@@ -1032,7 +1033,7 @@ namespace popot
 				void(*)(std::vector<ParticleStochasticSPSO >&, 
 					std::vector< typename ParticleStochasticSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-      void(*)(ParticleStochasticSPSO&),
+				void(*)(ParticleStochasticSPSO&),
       //std::function<void(ParticleStochasticSPSO&)>,
 				void(*)(ParticleStochasticSPSO&), 
 				void(*)(ParticleStochasticSPSO&, int(*const &)(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&)),
@@ -1050,6 +1051,11 @@ namespace popot
 
       // Comparison function between particles
       auto comparison_function = popot::PSO::particle::compareFitness<ParticleStochasticSPSO::TSuper>;
+
+      /*
+      auto comparison_function = std::bind(popot::PSO::particle::compareFitnessMonteCarlo<ParticleStochasticSPSO::TSuper, COST_FUNCTION>, std::placeholders::_1, std::placeholders::_2, 10, cost_function);
+      */
+      
       /*
       auto comparison_function = [](ParticleStochasticSPSO& p1, 
 				    ParticleStochasticSPSO& p2) -> int {
@@ -1071,7 +1077,7 @@ namespace popot
       auto confine = popot::confinement::confine<ParticleStochasticSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleStochasticSPSO, decltype(comparison_function)>;
+      auto best_position_update = popot::PSO::particle::updateBestPositionStochastic<ParticleStochasticSPSO, decltype(comparison_function)>;
 
       // Topology
       //auto topology = popot::PSO::topology::full_fillNeighborhoods<ParticleStochasticSPSO>;
