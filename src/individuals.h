@@ -248,7 +248,7 @@ namespace popot
 	/**
 	 * Returns the currently known fitness
 	 */
-	double getFitness(void) const
+	virtual double getFitness(void) const
 	{
 	  return _fitness;
 	}
@@ -428,7 +428,7 @@ namespace popot
        */
       template<typename TVECTOR_TYPE=Vector<double> >
       class StochasticBase : public Base<TVECTOR_TYPE> {
-     	protected:
+     	public:
 	typedef Base<TVECTOR_TYPE> TSuper;
 	std::list<double> _fitnesses;
 
@@ -444,6 +444,16 @@ namespace popot
 	  _fitnesses(other._fitnesses) {}
 
 	virtual ~StochasticBase() {}
+
+	/**
+	 * Returns the currently known fitness
+	 */
+	virtual double getFitness(void) const
+	{
+	  if(_fitnesses.size() == 0)
+	    throw std::exception();
+	  return this->_fitness;
+	}
 
 	std::list<double>& getFitnesses(void) {
 	  return _fitnesses;
@@ -501,11 +511,9 @@ namespace popot
       template<typename TVECTOR_TYPE=Vector<double> >
       class StochasticParticle : public StochasticBase<TVECTOR_TYPE> {
 
-     private:
+      public:
      	typedef StochasticBase<TVECTOR_TYPE> TSuper;
      	typedef StochasticParticle<TVECTOR_TYPE> ThisParticleType;
-
-     	public:
      	typedef StochasticBase<TVECTOR_TYPE> BestType;
      	typedef popot::PSO::neighborhood::Neighborhood< ThisParticleType > NeighborhoodType;
 
@@ -673,6 +681,14 @@ namespace popot
 	  // Here it is simply : p_{k+1} = p_k + v_k      
 	  for(size_t i = 0 ; i < p.getPosition().size() ; ++i)
 	    p.getPosition()[i] = p.getPosition()[i] + p.getVelocity()[i];
+	
+	}
+
+      template<typename PARTICLE>
+	void updatePositionStochastic(PARTICLE& p)
+	{
+	  updatePosition(p);
+	  p._fitnesses.clear();
 	
 	}
 

@@ -1022,6 +1022,74 @@ namespace popot
     */
 
 
+    typedef popot::PSO::particle::StochasticParticle<> ParticleStochasticSPSO;
+
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+    popot::PSO::algorithm::Base<LBOUND_FUNC, 
+				UBOUND_FUNC, 
+				STOP_CRITERIA,  
+				COST_FUNCTION,
+				void(*)(std::vector<ParticleStochasticSPSO >&, 
+					std::vector< typename ParticleStochasticSPSO::NeighborhoodType *> &, 
+					std::map< size_t, std::vector<size_t> > &),
+      void(*)(ParticleStochasticSPSO&),
+      //std::function<void(ParticleStochasticSPSO&)>,
+				void(*)(ParticleStochasticSPSO&), 
+				void(*)(ParticleStochasticSPSO&, int(*const &)(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&)),
+				int(*)(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&),
+				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
+				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
+				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
+				ParticleStochasticSPSO>*
+    stochastic_spso2006(size_t swarm_size, size_t dimension,
+			const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
+			const STOP_CRITERIA& stop, const COST_FUNCTION &cost_function) {
+
+      // Particle type
+      ParticleStochasticSPSO p;
+
+      // Comparison function between particles
+      auto comparison_function = popot::PSO::particle::compareFitness<ParticleStochasticSPSO::TSuper>;
+      /*
+      auto comparison_function = [](ParticleStochasticSPSO& p1, 
+				    ParticleStochasticSPSO& p2) -> int {
+	return 0;
+      };
+      */
+
+      // Position and velocity updates
+      // For stochastic particles, each time the position is updated
+      // we must clear the collection of _fitnesses
+      auto position_update = popot::PSO::particle::updatePositionStochastic<ParticleStochasticSPSO>;
+      auto velocity_update = popot::PSO::particle::updateVelocity_spso2006<ParticleStochasticSPSO, SPSO2006_Params>;
+     
+      // Initialization functions
+      auto init_position_function = popot::initializer::position::uniform_random<ParticleStochasticSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
+      auto init_velocity_function = popot::initializer::velocity::half_diff<ParticleStochasticSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
+      
+      // The confinement method
+      auto confine = popot::confinement::confine<ParticleStochasticSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
+
+      // The rule to update the best position
+      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleStochasticSPSO, decltype(comparison_function)>;
+
+      // Topology
+      //auto topology = popot::PSO::topology::full_fillNeighborhoods<ParticleStochasticSPSO>;
+      //auto topology = popot::PSO::topology::ring_fillNeighborhoods<ParticleStochasticSPSO>;
+      //auto topology = popot::PSO::topology::vonNeuman_fillNeighborhoods<ParticleStochasticSPSO>;
+      auto topology = popot::PSO::topology::randomInformants_fillNeighborhoods<ParticleStochasticSPSO, 3, true>;
+      //auto topology = popot::PSO::topology::adaptiveRandom_fillNeighborhoods<ParticleStochasticSPSO, 3, true>;
+
+
+      auto algo = popot::PSO::algorithm::base(swarm_size, dimension, 
+					      lbound, ubound, stop, cost_function, 
+					      topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
+					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
+      return algo;
+    }
+
+
+
    //  typedef popot::PSO::particle::StochasticParticle<> StochasticParticleSPSO;
 
    // template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
