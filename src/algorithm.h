@@ -81,9 +81,7 @@ namespace popot
 
       template< typename LBOUND_FUNC, typename UBOUND_FUNC, 
 		typename STOP_CRITERIA, typename COST_FUNCTION, 
-		typename TOPOLOGY, typename UPDATE_POSITION_RULE, 
-		typename UPDATE_VELOCITY_RULE, typename UPDATE_BEST_POSITION_RULE, 
-		typename COMPARISON_FUNCTION,
+		typename TOPOLOGY,
 		typename CONFINE_FUNCTION, typename INIT_POSITION_FUNCTION, 
 		typename INIT_VELOCITY_FUNCTION, typename PARTICLE>
 	class Base : public popot::algorithm::Base
@@ -105,15 +103,17 @@ namespace popot
 	size_t _dimension;
 	size_t _swarm_size;
 
+	typedef std::function<int(typename PARTICLE::TSuper&, typename PARTICLE::TSuper&)> TComparisonFunction;
+
 	const LBOUND_FUNC& _lbound;
 	const UBOUND_FUNC& _ubound;
 	const STOP_CRITERIA& _stop_criteria;
 	const COST_FUNCTION& _cost_function;
 	const TOPOLOGY _topology;
-	const UPDATE_POSITION_RULE _update_position_rule;
-	const UPDATE_VELOCITY_RULE _update_velocity_rule;
-	const UPDATE_BEST_POSITION_RULE _update_best_position_rule;
-	const COMPARISON_FUNCTION _comparison_function;
+	std::function<void(PARTICLE&)> _update_position_rule;
+	std::function<void(PARTICLE&)> _update_velocity_rule;
+	std::function<void(PARTICLE&, const TComparisonFunction&)> _update_best_position_rule;
+	std::function<int(typename PARTICLE::TSuper&, typename PARTICLE::TSuper&)> _comparison_function;
 
 	const CONFINE_FUNCTION _confine_function;
 	const INIT_POSITION_FUNCTION _init_position_function;
@@ -125,6 +125,8 @@ namespace popot
 	int nb_new_neigh;
 
       public:
+	template<typename UPDATE_POSITION_RULE, typename UPDATE_VELOCITY_RULE,
+		 typename UPDATE_BEST_POSITION_RULE, typename COMPARISON_FUNCTION>
 	Base(size_t swarm_size,
 	     size_t dimension,
 	     const LBOUND_FUNC& lbound,
@@ -132,10 +134,10 @@ namespace popot
 	     const STOP_CRITERIA& stop,
 	     const COST_FUNCTION& cost_function,    
 	     const TOPOLOGY topology,
-	     const UPDATE_POSITION_RULE update_position_rule,
-	     const UPDATE_VELOCITY_RULE update_velocity_rule,
-	     const UPDATE_BEST_POSITION_RULE update_best_position_rule,
-	     const COMPARISON_FUNCTION comparison_function,
+	     const UPDATE_POSITION_RULE& update_position_rule,
+	     const UPDATE_VELOCITY_RULE& update_velocity_rule,
+	     const UPDATE_BEST_POSITION_RULE& update_best_position_rule,
+	     const COMPARISON_FUNCTION& comparison_function,
 	     const CONFINE_FUNCTION confine_function,
 	     const INIT_POSITION_FUNCTION init_position_function,
 	     const INIT_VELOCITY_FUNCTION init_velocity_function,
@@ -571,14 +573,13 @@ namespace popot
 
       template< typename LBOUND_FUNC, typename UBOUND_FUNC,
 		typename STOP_CRITERIA, typename COST_FUNCTION,
-		typename TOPOLOGY, typename UPDATE_POSITION_RULE, 
+		typename TOPOLOGY, typename UPDATE_POSITION_RULE,
 		typename UPDATE_VELOCITY_RULE,typename UPDATE_BEST_POSITION_RULE, typename COMPARISON_FUNCTION,
 		typename CONFINE_FUNCTION, typename INIT_POSITION_FUNCTION,
 		typename INIT_VELOCITY_FUNCTION, typename PARTICLE>
       Base<LBOUND_FUNC, UBOUND_FUNC, 
 	   STOP_CRITERIA, COST_FUNCTION, 
-	   TOPOLOGY, UPDATE_POSITION_RULE, 
-	   UPDATE_VELOCITY_RULE, UPDATE_BEST_POSITION_RULE, COMPARISON_FUNCTION,
+	   TOPOLOGY,
 	   CONFINE_FUNCTION, INIT_POSITION_FUNCTION, 
 	   INIT_VELOCITY_FUNCTION, PARTICLE>*
       base(size_t swarm_size,
@@ -602,7 +603,7 @@ namespace popot
 	// as we anyway copy (some of) them in the constructor
 	
 	return new Base<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION, 
-			TOPOLOGY, UPDATE_POSITION_RULE, UPDATE_VELOCITY_RULE, UPDATE_BEST_POSITION_RULE, COMPARISON_FUNCTION,CONFINE_FUNCTION, INIT_POSITION_FUNCTION, INIT_VELOCITY_FUNCTION, PARTICLE>
+			TOPOLOGY, CONFINE_FUNCTION, INIT_POSITION_FUNCTION, INIT_VELOCITY_FUNCTION, PARTICLE>
 	  (swarm_size, dimension, lbound, ubound, stop, cost_function, topology, 
 	   update_position_rule, update_velocity_rule, update_best_position_rule, comparison_function, confine_function, init_position_function, init_velocity_function, p, evaluation_mode);
       }
@@ -926,10 +927,6 @@ namespace popot
 				  void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				  void(*)(ParticleSPSO&),
-				  void(*)(ParticleSPSO&), 
-				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -956,7 +953,7 @@ namespace popot
       auto confine = popot::confinement::confine<ParticleSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, decltype(comparison_function)>;
+      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, std::function<int(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)> >;
 
       // Topology
       //auto topology = popot::PSO::topology::full_fillNeighborhoods<ParticleSPSO>;
@@ -968,7 +965,9 @@ namespace popot
 
       auto algo = popot::PSO::algorithm::base(swarm_size, dimension, 
 					      lbound, ubound, stop, cost_function, 
-					      topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
+					      topology, position_update, velocity_update, 
+					      best_position_update, comparison_function, 
+					      confine, init_position_function, init_velocity_function,
 					      p, popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
       return algo;
     }
@@ -982,10 +981,6 @@ namespace popot
 				void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&), 
-				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1033,11 +1028,6 @@ namespace popot
 				void(*)(std::vector<ParticleStochasticSPSO >&, 
 					std::vector< typename ParticleStochasticSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleStochasticSPSO&),
-      //std::function<void(ParticleStochasticSPSO&)>,
-				void(*)(ParticleStochasticSPSO&), 
-				void(*)(ParticleStochasticSPSO&, int(*const &)(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&)),
-				int(*)(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&),
 				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				void(*)(typename ParticleStochasticSPSO::VECTOR_TYPE&, typename ParticleStochasticSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1077,7 +1067,7 @@ namespace popot
       auto confine = popot::confinement::confine<ParticleStochasticSPSO::VECTOR_TYPE, LBOUND_FUNC, UBOUND_FUNC>;
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPositionStochastic<ParticleStochasticSPSO, decltype(comparison_function)>;
+      auto best_position_update = popot::PSO::particle::updateBestPositionStochastic<ParticleStochasticSPSO, std::function<int(ParticleStochasticSPSO::TSuper&, ParticleStochasticSPSO::TSuper&)> >;
 
       // Topology
       //auto topology = popot::PSO::topology::full_fillNeighborhoods<ParticleStochasticSPSO>;
@@ -1187,10 +1177,6 @@ namespace popot
 				void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&),
-				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&), 
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1242,10 +1228,6 @@ namespace popot
 				void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&),
-				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1321,10 +1303,6 @@ namespace popot
 				void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&), 
-				  void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
@@ -1352,7 +1330,7 @@ namespace popot
     
 
       // The rule to update the best position
-      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, decltype(comparison_function)>;
+      auto best_position_update = popot::PSO::particle::updateBestPosition<ParticleSPSO, std::function<int(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)> >;
 
 
       // Topology
@@ -1379,10 +1357,6 @@ namespace popot
 				void(*)(std::vector<ParticleSPSO >&, 
 					std::vector< typename ParticleSPSO::NeighborhoodType *> &, 
 					std::map< size_t, std::vector<size_t> > &),
-				void(*)(ParticleSPSO&),
-				void(*)(ParticleSPSO&), 
-				void(*)(ParticleSPSO&, int(*const &)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&)),
-				  int(*)(ParticleSPSO::TSuper&, ParticleSPSO::TSuper&),
 				void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
 				  void(*)(typename ParticleSPSO::VECTOR_TYPE&, typename ParticleSPSO::VECTOR_TYPE&, const LBOUND_FUNC&, const UBOUND_FUNC&),
