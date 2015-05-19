@@ -4,9 +4,8 @@ typedef popot::rng::CRNG RNG_GENERATOR;
 #include "popot.h"
 
 typedef popot::algorithm::ParticleStochasticSPSO::VECTOR_TYPE TVector;
-//typedef popot::algorithm::ParticleSPSO::VECTOR_TYPE TVector;
-typedef popot::problems::QuarticNoise Problem;
-//typedef popot::problems::Rosenbrock Problem;
+
+
 
 int main(int argc, char* argv[]) {
 
@@ -17,41 +16,47 @@ int main(int argc, char* argv[]) {
   
   // Some initialization of static fields
   size_t dimension = 2;
-  Problem p(dimension);
 
-  auto lbound = [&p] (size_t index) -> double { return p.get_lbound(index); };
-  auto ubound = [&p] (size_t index) -> double { return p.get_ubound(index); };
-  auto stop =   [&p] (double fitness, int epoch) -> bool { return p.stop(fitness, epoch);};
-  auto cost_function = [&p] (TVector& pos) -> double { return p.evaluate(pos.getValuesPtr());};
+  auto lbound = [] (size_t index) -> double { return -5;};
+  auto ubound = [] (size_t index) -> double { return  5;};
+  auto stop =   [] (double fitness, int epoch) -> bool { return epoch >= 1000;};
+  auto cost_function = [dimension] (TVector& pos) -> double { 
+    double fitness = 0.0;
+    for(size_t i = 0 ; i < dimension ; ++i)
+      fitness += (pos[i]-1.5) * (pos[i]-1.5);
+    fitness += popot::math::normal(0.0, 1.0);
+    return fitness;
+  };
 
-  //auto algo = popot::algorithm::spso2006(15,dimension, lbound, ubound, stop, cost_function);
-  auto algo = popot::algorithm::stochastic_spso2006(30,dimension, lbound, ubound, stop, cost_function);
+  auto algo = popot::algorithm::stochastic_montecarlo_spso2006(dimension, lbound, ubound, stop, cost_function, 1);
 
+  // We save the initial positions
+  std::ofstream outfile;
+  outfile.open("init.data");
+  for(auto& p: algo->getParticles()) {
+    for(size_t i = 0 ; i < dimension ; ++i)
+      outfile << p.getPosition()[i] << " ";
+    outfile << std::endl;
+  }
+  outfile.close();
+  std::cout << "Positions saved in init.data" << std::endl;
+    
+  // We run the algorithm
   algo->run(1);
-
   std::cout << "Best particle :" << algo->getBest() << std::endl;
 
-  delete algo;
-
-  /*
-  popot::PSO::particle::StochasticParticle<> part(dimension);
-  popot::initializer::position::uniform_random(part.getPosition(), lbound, ubound);
-  part.evaluateFitness(cost_function);
-  part.evaluateFitness(cost_function);
-  std::cout << part << std::endl;
-
-  popot::PSO::particle::compareFitnessMonteCarlo(part, part, 10, cost_function);
-
-  std::ofstream outfile("toto.save");
-  part.save(outfile);
+  // And save the final positions
+  outfile.open("final.data");
+  for(auto& p: algo->getParticles()) {
+    for(size_t i = 0 ; i < dimension ; ++i)
+      outfile << p.getPosition()[i] << " ";
+    outfile << std::endl;
+  }
   outfile.close();
+  std::cout << "Positions saved in final.data" << std::endl;
 
-  
-  std::ifstream infile("toto.save");
-  popot::PSO::particle::StochasticParticle<> part2(dimension);
-  part2.load(infile);
-  infile.close();
+  std::cout << "You can plot the positions using gnuplot : " << std::endl;
+  std::cout << "   plot 'init.data' using 1:2, 'final.data' using 1:2" << std::endl;
 
-  std::cout << part2 << std::endl;
-  */
+  delete algo;
 }

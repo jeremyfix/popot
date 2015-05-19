@@ -692,6 +692,12 @@ namespace popot
 
       template<typename PARTICLE, typename COST_FUNCTION>
       int compareFitnessMonteCarlo(PARTICLE& p1, PARTICLE& p2, size_t nb_evaluations, const COST_FUNCTION& cost_function) {
+
+	// If we wish, we could clean up the fitnesses
+	// but this is not mandatory
+	//p1.getFitnesses().clear();
+	//p2.getFitnesses().clear();
+
 	while(p1.getFitnesses().size() < nb_evaluations)
 	  p1.evaluateFitness(cost_function);
 
@@ -719,16 +725,18 @@ namespace popot
 	    p._best_position = p;
 	}
 
+      /*
       template<typename PARTICLE, typename COMPARISON_FUNCTION>
       void updateBestPositionStochastic(PARTICLE& p, const COMPARISON_FUNCTION& compare)
 	{
 	  // Update the best position the particle ever had
 	  // with a copy of the current position
 	  p.getBestPosition()._fitnesses.clear();
+
 	  if(compare(p, p.getBestPosition()) < 0)
 	    p._best_position = p;
 	}
-
+      */
 
       /**
        * Basic update of the position of a particle
