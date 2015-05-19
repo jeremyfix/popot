@@ -105,7 +105,10 @@ namespace popot
 	std::function<double(size_t)> _ubound;
 	std::function<bool(double, int)> _stop_criteria;
 	std::function<double(typename PARTICLE::VECTOR_TYPE&)> _cost_function;
+
 	std::function<void(std::vector<PARTICLE>&, std::vector<NeighborhoodType*>&, std::map<size_t, std::vector<size_t> >&)> _topology;
+	std::function<BestType*(typename popot::PSO::neighborhood::Neighborhood<PARTICLE>*)> _find_best_in_neighborhood;
+
 	std::function<void(PARTICLE&)> _update_position_rule;
 	std::function<void(PARTICLE&)> _update_velocity_rule;
 	std::function<void(PARTICLE&, const TComparisonFunction&)> _update_best_position_rule;
@@ -114,6 +117,8 @@ namespace popot
 	std::function<void(typename PARTICLE::VECTOR_TYPE&, typename PARTICLE::VECTOR_TYPE&, const std::function<double(size_t)>&, const std::function<double(size_t)>) > _confine_function;
 	std::function<void(typename PARTICLE::VECTOR_TYPE&, const std::function<double(size_t)>&, const std::function<double(size_t)>) > _init_position_function;
 	std::function<void(typename PARTICLE::VECTOR_TYPE&, typename PARTICLE::VECTOR_TYPE&, const std::function<double(size_t)>&, const std::function<double(size_t)>) > _init_velocity_function;
+
+
 
 	EvaluationMode _evaluation_mode;
       public:
@@ -127,7 +132,8 @@ namespace popot
 		 typename UPDATE_POSITION_RULE, typename UPDATE_VELOCITY_RULE,
 		 typename UPDATE_BEST_POSITION_RULE, typename COMPARISON_FUNCTION,
 		 typename CONFINE_FUNCTION,
-		 typename INIT_POSITION_FUNCTION, typename INIT_VELOCITY_FUNCTION>
+	  typename INIT_POSITION_FUNCTION, typename INIT_VELOCITY_FUNCTION,
+	  typename FIND_BEST_NEIGHBORHOOD_FUNCTION>
 	Base(size_t swarm_size,
 	     size_t dimension,
 	     const LBOUND_FUNC& lbound,
@@ -135,6 +141,7 @@ namespace popot
 	     const STOP_CRITERIA& stop,
 	     const COST_FUNCTION& cost_function,    
 	     const TOPOLOGY& topology,
+	     const FIND_BEST_NEIGHBORHOOD_FUNCTION& find_best_in_neighborhood,
 	     const UPDATE_POSITION_RULE& update_position_rule,
 	     const UPDATE_VELOCITY_RULE& update_velocity_rule,
 	     const UPDATE_BEST_POSITION_RULE& update_best_position_rule,
@@ -152,6 +159,7 @@ namespace popot
 	  _stop_criteria(stop),
 	  _cost_function(cost_function),
 	  _topology(topology),
+	  _find_best_in_neighborhood(find_best_in_neighborhood),
 	  _update_position_rule(update_position_rule),
 	  _update_velocity_rule(update_velocity_rule),
 	  _update_best_position_rule(update_best_position_rule),
@@ -209,7 +217,8 @@ namespace popot
 	  // We now browse all the neighborhoods and find the best particles
 	  // within each of them
 	  // and initialize the best best particle of the whole swarm
-	  _best_particle = *(neighborhoods[0]->findBest(_comparison_function));
+	  //_best_particle = *(neighborhoods[0]->findBest(_comparison_function));
+	  _best_particle = *(popot::PSO::neighborhood::findBest<PARTICLE>(neighborhoods[0], _comparison_function));
 	  for(size_t i = 1 ; i < neighborhoods.size() ; ++i)
 	    if(_comparison_function(*neighborhoods[i]->findBest(_comparison_function),_best_particle) < 0)
 	      _best_particle = *(neighborhoods[i]->getBest());
@@ -571,40 +580,6 @@ namespace popot
 	}
       };
 
-      /*
-      template<	typename LBOUND_FUNC, typename UBOUND_FUNC,
-		typename STOP_CRITERIA, typename COST_FUNCTION,
-		typename TOPOLOGY, typename UPDATE_POSITION_RULE,
-		typename UPDATE_VELOCITY_RULE,typename UPDATE_BEST_POSITION_RULE, typename COMPARISON_FUNCTION,
-		typename CONFINE_FUNCTION, typename INIT_POSITION_FUNCTION,
-		typename INIT_VELOCITY_FUNCTION, typename PARTICLE>
-      Base<PARTICLE>*
-      base(size_t swarm_size,
-	   size_t dimension,
-	   const LBOUND_FUNC& lbound,
-	   const UBOUND_FUNC& ubound,
-	   const STOP_CRITERIA& stop,
-	   const COST_FUNCTION& cost_function,
-	   const TOPOLOGY& topology,
-	   const UPDATE_POSITION_RULE& update_position_rule,
-	   const UPDATE_VELOCITY_RULE& update_velocity_rule,
-	   const UPDATE_BEST_POSITION_RULE& update_best_position_rule,
-	   const COMPARISON_FUNCTION& comparison_function,
-	   const CONFINE_FUNCTION& confine_function,
-	   const INIT_POSITION_FUNCTION& init_position_function,
-	   const INIT_VELOCITY_FUNCTION& init_velocity_function,
-	   const PARTICLE& p,
-	   EvaluationMode evaluation_mode)
-      {
-	// the parameters above can be provided by reference
-	// as we anyway copy (some of) them in the constructor
-	
-	return new Base<PARTICLE>
-	  (swarm_size, dimension, lbound, ubound, stop, cost_function, topology, 
-	   update_position_rule, update_velocity_rule, update_best_position_rule, comparison_function, confine_function, init_position_function, init_velocity_function, p, evaluation_mode);
-      }
-      */
-
     } // namespace algorithm
   } // namespace PSO
 
@@ -921,7 +896,7 @@ namespace popot
 	     std::function<bool(double, int)> stop, std::function<double(ParticleSPSO::VECTOR_TYPE&)> cost_function) {
 
       // Comparison function between particles
-      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
+      std::function<int(ParticleSPSO::BestType&, ParticleSPSO::BestType&)> comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
 
       // Position and velocity updates
       auto position_update = popot::PSO::particle::updatePosition<ParticleSPSO>;
@@ -944,10 +919,12 @@ namespace popot
       auto topology = popot::PSO::topology::randomInformants_fillNeighborhoods<ParticleSPSO, 3, true>;
       //auto topology = popot::PSO::topology::adaptiveRandom_fillNeighborhoods<ParticleSPSO, 3, true>;
 
+      auto find_best_in_neighborhood = std::bind(popot::PSO::neighborhood::findBest<ParticleSPSO>, std::placeholders::_1, comparison_function);
 
       return new popot::PSO::algorithm::Base<ParticleSPSO>(swarm_size, dimension, 
 							   lbound, ubound, stop, cost_function, 
-							   topology, position_update, velocity_update, 
+							   topology, find_best_in_neighborhood,
+							   position_update, velocity_update, 
 							   best_position_update, comparison_function, 
 							   confine, init_position_function, init_velocity_function,
 							   popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
@@ -975,7 +952,7 @@ namespace popot
 				   unsigned int nb_evaluations) {
 
       // Comparison function between particles
-      auto comparison_function = std::bind(popot::PSO::particle::compareFitnessMonteCarlo<ParticleStochasticSPSO::TSuper, std::function<double(ParticleStochasticSPSO::VECTOR_TYPE&)> >, std::placeholders::_1, std::placeholders::_2, nb_evaluations, cost_function);
+      std::function<int(ParticleStochasticSPSO::BestType&, ParticleStochasticSPSO::BestType&)> comparison_function = std::bind(popot::PSO::particle::compareFitnessMonteCarlo<ParticleStochasticSPSO::TSuper, std::function<double(ParticleStochasticSPSO::VECTOR_TYPE&)> >, std::placeholders::_1, std::placeholders::_2, nb_evaluations, cost_function);
 
       // Position and velocity updates
       // For stochastic particles, each time the position is updated
@@ -999,11 +976,12 @@ namespace popot
       //auto topology = popot::PSO::topology::vonNeuman_fillNeighborhoods<ParticleStochasticSPSO, false>;
       auto topology = popot::PSO::topology::randomInformants_fillNeighborhoods<ParticleStochasticSPSO, 3, true>;
       //auto topology = popot::PSO::topology::adaptiveRandom_fillNeighborhoods<ParticleStochasticSPSO, 3, true>;
-
+      auto find_best_in_neighborhood = std::bind(popot::PSO::neighborhood::findBest<ParticleStochasticSPSO>, std::placeholders::_1, comparison_function);
 
       return new popot::PSO::algorithm::Base<ParticleStochasticSPSO>(swarm_size, dimension, 
 								     lbound, ubound, stop, cost_function, 
-								     topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
+								     topology, find_best_in_neighborhood,
+								     position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
 								     popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
     }
 
@@ -1032,7 +1010,7 @@ namespace popot
 	       std::function<double(ParticleSPSO::VECTOR_TYPE&)> cost_function) {
 
      // Comparison function between particles
-      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
+      std::function<int(ParticleSPSO::BestType&, ParticleSPSO::BestType&)> comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
 
       // Position and velocity updates
       auto position_update = popot::PSO::particle::updatePosition<ParticleSPSO>;
@@ -1056,9 +1034,12 @@ namespace popot
       //auto topology = popot::PSO::topology::randomInformants_fillNeighborhoods<ParticleSPSO, 3, true>;
       auto topology = popot::PSO::topology::adaptiveRandom_fillNeighborhoods<ParticleSPSO, 3, true>;
 
+      auto find_best_in_neighborhood = std::bind(popot::PSO::neighborhood::findBest<ParticleSPSO>, std::placeholders::_1, comparison_function);
+
       return new popot::PSO::algorithm::Base<ParticleSPSO>(swarm_size, dimension, 
 							   lbound, ubound, stop, cost_function, 
-							   topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
+							   topology, find_best_in_neighborhood,
+							   position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
 							   popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION); 
     }
 
@@ -1132,9 +1113,11 @@ namespace popot
       spso2011(size_t swarm_size, size_t dimension,
 	       std::function<double(size_t)> lbound, std::function<double(size_t)> ubound,
 	       std::function<bool(double, int)> stop, std::function<double(ParticleSPSO::VECTOR_TYPE&)> cost_function) {
-
-      // Comparison function between particles
-      auto comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
+	
+	// Comparison function between particles
+	// We declare it as std::function rather than auto because we will make copy of it
+	// when declaring find_best_in_neighrborhood
+	std::function<int(ParticleSPSO::BestType&, ParticleSPSO::BestType&)> comparison_function = popot::PSO::particle::compareFitness<ParticleSPSO::TSuper>;
 
       // Position and velocity updates
       auto position_update = popot::PSO::particle::updatePosition<ParticleSPSO>;
@@ -1159,9 +1142,12 @@ namespace popot
       //auto topology = popot::PSO::topology::randomInformants_fillNeighborhoods<ParticleSPSO, 3, true>;
       auto topology = popot::PSO::topology::adaptiveRandom_fillNeighborhoods<ParticleSPSO, 3, true>;
 
+      auto find_best_in_neighborhood = std::bind(popot::PSO::neighborhood::findBest<ParticleSPSO>, std::placeholders::_1, comparison_function);
+
       return new popot::PSO::algorithm::Base<ParticleSPSO>(swarm_size, dimension, 
 							   lbound, ubound, stop, cost_function, 
-							   topology, position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
+							   topology, find_best_in_neighborhood,
+							   position_update, velocity_update, best_position_update, comparison_function, confine, init_position_function, init_velocity_function,
 							   popot::PSO::algorithm::ASYNCHRONOUS_WITHOUT_SHUFFLE_EVALUATION);
     }
 

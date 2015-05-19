@@ -33,11 +33,12 @@ namespace popot
   namespace PSO
   {
 
+    /*
     namespace particle
     {
       template<typename PROBLEM, typename POSITION_INITIALIZER> class BaseParticle;
     }
-
+    */
     namespace neighborhood
     {
 
@@ -90,7 +91,11 @@ namespace popot
 	  _particles.clear();
 	}
 
-	InNeighborhoodType * get(unsigned int i) const
+	std::vector<InNeighborhoodType *>& get() {
+	  return _particles;
+	}
+
+	InNeighborhoodType * get(unsigned int i)
 	{
 	  if(i >= 0 && i < size())
 	    return _particles[i];
@@ -98,8 +103,7 @@ namespace popot
 	    throw popot::Exception::IndexOutOfRange(i, size());
 	}
 
-	template<typename COMPARISON_FUNCTION>
-	BestType * findBest(const COMPARISON_FUNCTION& compare)
+	BestType * findBest(const std::function<int(BestType&, BestType&)>& compare)
 	{
 	  if(_particles.size() == 0)
 	    throw popot::Exception::FindBestFromEmptyNeighborhood();
@@ -114,20 +118,15 @@ namespace popot
 	  return _best_particle;
 	}
 
-	void updateBest(InNeighborhoodType * p)
-	{
-	  if(_best_particle == 0)
-	    throw popot::Exception::BestParticleNotInitialized();
-
-	  if((*p->getBestPosition()) < (*_best_particle))
-	    _best_particle = &(p->getBestPosition());
-	}
-
 	BestType* getBest(void)
 	{
 	  if(_best_particle == 0)
 	    throw popot::Exception::BestParticleNotInitialized();
 	  return _best_particle;
+	}
+
+	void setBest(BestType* best) {
+	  _best_particle = best;
 	}
 
 	void print(void)
@@ -139,91 +138,24 @@ namespace popot
 	}
       };
 
-
-      /**
-       * ProbabilisticNeighborhood
-       * @param PARTICLE The particle type you want to use, e.g. swarm::particle::Particle
-       * \brief A neighborhood contains a vector of particles belonging to the neighborhood as well as a pointer (not a copy!)
-       *        to the best particle; The selection of the best is probabilistic
-       */
-      /*
-	template<typename PARTICLE, typename PARAMS>
-        class ProbabilisticNeighborhood
-        {
-	public:
-	typedef typename PARTICLE::BestType BestType;
-	typedef PARTICLE InNeighborhoodType;
-
-        protected:
-	std::vector<InNeighborhoodType *> _particles;
-	const BestType *_best_particle;
-
-        public:
-	ProbabilisticNeighborhood(void){
-	_best_particle = 0;
-	};
-
-	virtual ~ProbabilisticNeighborhood(void){
-	clear();
-	};
-
-	void add(InNeighborhoodType * p)
+      template<typename PARTICLE>
+	typename PARTICLE::BestType * findBest(Neighborhood<PARTICLE>* neighborhood,
+					       const std::function<int(typename PARTICLE::BestType&, typename PARTICLE::BestType&)>& compare)
 	{
-	_particles.push_back(p);
+	  auto particles = neighborhood->get();
+	  if(particles.size() == 0)
+	    throw popot::Exception::FindBestFromEmptyNeighborhood();
+	  
+	  auto best_particle = &(particles[0]->getBestPosition());
+	  for(unsigned int i = 1 ; i < particles.size() ; ++i)
+	    {
+	      if(compare(particles[i]->getBestPosition(), *best_particle) < 0)
+		best_particle = &(particles[i]->getBestPosition());
+	    }
+	  neighborhood->setBest(best_particle);
+
+	  return best_particle;
 	}
-
-	int size() const
-	{
-	return _particles.size();
-	}
-
-	void clear()
-	{
-	_particles.clear();
-	}
-
-	InNeighborhoodType * get(int i)
-	{
-	if(i >= 0 && i < size())
-	return _particles[i];
-	else
-	throw popot::Exception::IndexOutOfRange(i, size());
-	}
-
-	BestType * findBest(void)
-	{
-	if(_particles.size() == 0)
-	throw popot::Exception::FindBestFromEmptyNeighborhood();
-
-	// Collect the fitnesses
-	double fitnesses[_particles.size()];
-	for(unsigned int i = 0 ; i < _particles.size() ; ++i)
-	fitnesses[i] = _particles[i]->getBestPosition()->getFitness();
-
-	// Perform a Gibbs sampling with this array of fitnesses
-	// to select the local best
-	_best_particle = &(_particles[popot::math::random_gibbs_from_array(fitnesses,_particles.size(), PARAMS::inv_temperature())]->getBestPosition());
-
-	return _best_particle;
-	}
-
-	void updateBest(InNeighborhoodType * p)
-	{
-	if(_best_particle == 0)
-	throw popot::Exception::BestParticleNotInitialized();
-
-	if(p->getBestPosition()->compare(_best_particle) < 0)
-	_best_particle = &(p->getBestPosition());
-	}
-
-	const BestType * getBest(void)
-	{
-	return _best_particle;
-	}
-        };
-      */
-
-
 
     } // namespace neighborhood
   } // namespace PSO
