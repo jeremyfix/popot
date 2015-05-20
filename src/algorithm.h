@@ -218,9 +218,9 @@ namespace popot
 	  // within each of them
 	  // and initialize the best best particle of the whole swarm
 	  //_best_particle = *(neighborhoods[0]->findBest(_comparison_function));
-	  _best_particle = *(popot::PSO::neighborhood::findBest<PARTICLE>(neighborhoods[0], _comparison_function));
+	  _best_particle = *_find_best_in_neighborhood(neighborhoods[0]);
 	  for(size_t i = 1 ; i < neighborhoods.size() ; ++i)
-	    if(_comparison_function(*neighborhoods[i]->findBest(_comparison_function),_best_particle) < 0)
+	    if(_comparison_function(*_find_best_in_neighborhood(neighborhoods[i]),_best_particle) < 0)
 	      _best_particle = *(neighborhoods[i]->getBest());
 	}
 
@@ -263,7 +263,7 @@ namespace popot
 	   	  particle_index = particles_indexes[i];
 
 	   	  // First find the best informant within the neighborhood
-	   	  particles[particle_index].getNeighborhood().findBest(_comparison_function);
+		  _find_best_in_neighborhood(&(particles[particle_index].getNeighborhood()));
 
 	   	  // Update the velocities and position
 		  _update_velocity_rule(particles[particle_index]);
@@ -313,15 +313,15 @@ namespace popot
 
 	      // We now update the best particle of all the neighborhoods
 	      for(size_t i = 0 ; i < neighborhoods.size() ; ++i)
-	  	neighborhoods[i]->findBest(_comparison_function);
+		_find_best_in_neighborhood(neighborhoods[i]);
 	    }
 
 	  // Update the best particle the whole swarm ever had
 	  double old_fitness = _best_particle.getFitness();
 
-	  _best_particle = *(neighborhoods[0]->findBest(_comparison_function));
+	  _best_particle = *_find_best_in_neighborhood(neighborhoods[0]);
 	  for(size_t i = 1 ; i < neighborhoods.size() ; ++i)
-	    if(_comparison_function(*neighborhoods[i]->findBest(_comparison_function),_best_particle) < 0)
+	    if(_comparison_function(*_find_best_in_neighborhood(neighborhoods[i]),_best_particle) < 0)
 	      _best_particle = *(neighborhoods[i]->getBest());
 
 	  if(_best_particle.getFitness() >= old_fitness)
@@ -571,9 +571,9 @@ namespace popot
 	  // We now browse all the neighborhoods and find the best particles
 	  // within each of them
 	  // and initialize the best best particle of the whole swarm
-	  _best_particle = *(neighborhoods[0]->findBest(_comparison_function));
+	  _best_particle = *_find_best_in_neighborhood(neighborhoods[0]);
 	  for(size_t i = 1 ; i < neighborhoods.size() ; ++i)
-	    if(_comparison_function(*neighborhoods[i]->findBest(_comparison_function),_best_particle) < 0)
+	    if(_comparison_function(*_find_best_in_neighborhood(neighborhoods[i]),_best_particle) < 0)
 	      _best_particle = *(neighborhoods[i]->getBest());
 
 
