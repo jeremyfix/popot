@@ -254,7 +254,7 @@ namespace popot {
 	 * these approximations of Q(s,a)             
 	 **/
 	template<typename SPARAMS, typename PPARAMS>
-	struct Policy {
+	struct RBFPolicy {
 
 	  static int dimension() {
 	    return 3 * (PPARAMS::nb_centers() * PPARAMS::nb_centers() + 1);
