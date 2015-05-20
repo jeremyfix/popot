@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     return fitness;
   };
 
-  auto algo = popot::algorithm::stochastic_montecarlo_spso2006(dimension, lbound, ubound, stop, cost_function, 1);
+  auto algo = popot::algorithm::stochastic_montecarlo_spso2011(dimension, lbound, ubound, stop, cost_function, 100);
 
   // We save the initial positions
   std::ofstream outfile;
