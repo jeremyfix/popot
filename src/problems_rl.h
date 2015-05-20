@@ -40,6 +40,293 @@ namespace popot {
        **/
       namespace mountain_car {
 
+	struct Params {
+	  // The boundaries of the problem
+	  static std::pair<double, double> x_range() { return std::make_pair(-1.2, 0.5);};
+	  static std::pair<double, double> dx_range() { return std::make_pair(-0.07, 0.07);};
+
+	  // The ranges for initializing the car
+	  static std::pair<double, double> x0_range() { return std::make_pair(-0.75, -0.25);};
+	  static std::pair<double, double> dx0_range() { return std::make_pair(-0.02, 0.02);};
+
+	  // Maximal number of iterations allowed for a trial
+	  static unsigned int max_length_episode() { return 1500;};
+	};
+
+	template<typename PARAMS>
+	struct State {
+	  double _x, _dx;
+
+	  State() {
+	    _x = popot::math::uniform_random(PARAMS::x0_range().first, PARAMS::x0_range().second);
+	    _dx = popot::math::uniform_random(PARAMS::dx0_range().first, PARAMS::dx0_range().second);
+	  }
+	};
+
+	struct Action {
+	  double _f;
+	};
+
+	template<typename TPOLICY, typename PARAMS>
+	struct Simulator {
+	  static void transition(State<PARAMS>& s, Action& a, double & rew, int &eoe) {
+	    double aa = a._f;
+
+	    double x_t = s._x;
+	    double dx_t = s._dx;
+
+	    // Update the velocity
+	    double dx_t_1 = dx_t + 1e-3 * (aa - 2.5 * cos(3.0 * x_t));
+
+	    // Bound it
+	    if(dx_t_1 <= PARAMS::dx_range().first)
+	      dx_t_1 = PARAMS::dx_range().first;
+	    else if(dx_t_1 >= PARAMS::dx_range().second)
+	      dx_t_1 = PARAMS::dx_range().second;
+
+	    // Update the position
+	    double x_t_1 = x_t + dx_t_1;
+
+	    // Bound it
+	    if(x_t_1 <= PARAMS::x_range().first) {
+	      x_t_1 = PARAMS::x_range().first;
+	      dx_t_1 = 0.0;
+	    }
+
+	    if(x_t_1 >= PARAMS::x_range().second) {
+	      x_t_1 = PARAMS::x_range().second;
+	      dx_t_1 = 0.0;
+	    }
+
+	    // Set the new position and velocity
+	    s._x = x_t_1;
+	    s._dx = dx_t_1;
+
+	    if(x_t_1 >= PARAMS::x_range().second) {
+	      rew = 0;
+	      eoe = 1;
+	    }
+	    else {
+	      rew = -1.0;
+	      eoe = 0;
+	    }
+	  }
+
+
+	  static double evaluate(double * params) {
+	    return evaluaten(params, 1);
+	  }
+
+	  static double evaluaten(double * params, int nb_trajectories) {
+	    int epoch;
+	    int eoe;
+	    double rew = 0.0;
+	    double rew_t;
+	    double rew_cumul = 0.0;
+	    for(int i = 0 ; i < nb_trajectories; ++i) {
+	      State<PARAMS> s;
+	      Action a;
+	      epoch = 0;
+	      eoe = 0;
+	      rew_cumul = 0;
+	      while((epoch < PARAMS::max_length_episode()) && !eoe) {
+		TPOLICY::sample_action(s, params, a);
+		transition(s, a, rew_t, eoe);
+		rew_cumul += rew_t;
+		++epoch;
+	      }
+	      rew += rew_cumul;
+	    }
+	    return rew / double(nb_trajectories);
+	  }
+
+	  // This functions test a policy on one trial and prints the state, etc.. in filename
+	  static void print_policy(std::string filename, double * params)
+	  {
+	    std::ofstream outfile;
+
+	    State<PARAMS> s;
+	    Action a;
+
+	    outfile.open(filename.c_str());
+	    int epoch = 0;
+	    int eoe=0;
+	    double rew_t;
+
+	    while( (epoch < PARAMS::max_length_episode()) && !eoe) {
+		TPOLICY::sample_action(s, params, a);
+		transition(s, a, rew_t, eoe);
+		++epoch;
+		outfile << epoch << "\t"
+			<< s._x << "\t"
+			<< s._dx << "\t"
+			<< a._f << "\t"
+			<< rew_t << std::endl;
+	      }
+	    outfile.close();
+
+	    std::cout << "Saved a policy in " << filename << std::endl;
+	    std::cout << "Columns must be understood as : epoch x dx action reward" << std::endl;
+	  }
+
+	  // This function evaluates the average number steps to reach the goal
+	  // averaged over NB_POLICY_EVALUATIONS
+	  static double test_policy(double * params, int nb_trajectories) {
+	    double total_steps_to_goal = 0.0;
+	    int epoch, eoe;
+	    double rew_t;
+	    for(int i = 0 ; i < nb_trajectories ; ++i)
+	      {
+		epoch = 0;
+		eoe=0;
+		State<PARAMS> s;
+		Action a;
+		while( (epoch < PARAMS::max_length_episode()) && !eoe)
+		  {
+		    TPOLICY::sample_action(s, params, a);
+		    transition(s, a, rew_t, eoe);
+		    ++epoch;
+		  }
+		total_steps_to_goal += epoch;
+	      }
+	    return total_steps_to_goal/double(nb_trajectories);
+	  }	  
+	  
+	  // This function evaluates the average number of steps to reach the goal
+	  // from uniformely distributed starting positions (x, dx)
+	  static void test_length_all_positions(std::string filename, double * params, int nb_trajectories) {
+	    State<PARAMS> s;
+	    Action a;
+
+	    double rew_t;
+	    int eoe;
+	    int epoch = 0;
+	    int N = 50;
+
+	    double init_x, init_dx;
+	    double total_length_episodes = 0;
+	    std::ofstream outfile(filename.c_str());
+
+	    double x_min, x_max, dx_min, dx_max;
+	    std::tie(x_min, x_max) = PARAMS::x_range();
+	    std::tie(dx_min, dx_max) = PARAMS::dx_range();
+	    
+	    for(int i = 0 ; i < N ; ++i)
+	      {
+		init_x = x_min + (x_max - x_min) *double(i)/double(N-1);
+		for(int j = 0 ; j < N ; ++j)
+		  {
+		    init_dx = dx_min + (dx_max - dx_min) *double(j)/double(N-1);
+		    total_length_episodes = 0;
+		    for(int k = 0 ; k< nb_trajectories ; ++k)
+		      {
+			s._x = init_x;
+			s._dx = init_dx;
+			epoch = 0;
+			eoe = 0;
+
+			while((epoch < PARAMS::max_length_episode()) && !eoe)
+			  {
+			    TPOLICY::sample_action(s, params, a);
+			    transition(s, a, rew_t, eoe);
+			    ++epoch;
+			  }
+			total_length_episodes += epoch;
+		      }
+		    outfile << init_x << " " << init_dx << " " << total_length_episodes/double(nb_trajectories) << std::endl;
+		  }
+	      }
+	    outfile.close();
+	  }
+
+
+	};
+
+
+	struct RBFParams {
+	  static int nb_centers() { return 3;}
+	  static double sigma() { return 0.3;}
+	};
+
+	/**
+	 * Policy : RBF with 9 gaussians + a constant term  per action 
+	 * Selection is done with a Gibbs schema over         
+	 * these approximations of Q(s,a)             
+	 **/
+	template<typename SPARAMS, typename PPARAMS>
+	struct Policy {
+
+	  static int dimension() {
+	    return 3 * (PPARAMS::nb_centers() * PPARAMS::nb_centers() + 1);
+	  }
+
+	  static double lbound(size_t index) { return -100;}
+	  static double ubound(size_t index) { return  100;}
+	  
+
+
+	  // Compute the probabilities to select each of the 3 actions
+	  // These probabilites, returned in the proba array are normalized, they sum to 1.0
+	  static double compute_probability(State<SPARAMS> &s, double * params, double * proba)
+	  {
+	    double mu_x, mu_dx;
+	    double phi_s_a;
+	    double scaled_x, scaled_dx;
+	    double sum_proba = 0.0;
+	    int index_param = 0;
+	    double temperature = 1.0;
+
+	    double x_min, x_max, dx_min, dx_max;
+	    std::tie(x_min, x_max) = SPARAMS::x_range();
+	    std::tie(dx_min, dx_max) = SPARAMS::dx_range();
+
+	    scaled_x = 1.0 - (x_max - s._x)/(x_max - x_min);
+	    scaled_dx = 1.0 - (dx_max - s._dx)/(dx_max- dx_min);
+
+	    for(int i = 0 ; i < 3 ; ++i)  {
+		// The constant term
+		proba[i] = params[index_param];
+		++index_param;
+		for(int j_x = 0 ; j_x < PPARAMS::nb_centers() ; ++j_x) {
+		  // The gaussians on x are centered on [0, 0.5 , 1.0]
+		  mu_x =  double(j_x)/ double(PPARAMS::nb_centers() - 1.0);
+		  for(int j_dx = 0 ; j_dx < PPARAMS::nb_centers() ; ++j_dx) {
+		    // The gaussians on dx are centered on [0, 0.5 , 1.0]
+		    mu_dx = double(j_dx) / double(PPARAMS::nb_centers() - 1.0);
+		    phi_s_a = exp(-((mu_x - scaled_x)*(mu_x - scaled_x) + (mu_dx - scaled_dx)*(mu_dx - scaled_dx))/(2.0*PPARAMS::sigma()*PPARAMS::sigma()));
+		    proba[i] = proba[i] + params[index_param]*phi_s_a ;
+		    index_param++;
+		  }
+		}
+		proba[i] = exp(proba[i]/temperature);
+		sum_proba = sum_proba + proba[i];
+	      }
+	    
+	    return sum_proba;
+	  }
+	  
+	  static void sample_action(State<SPARAMS> &s, double * params, Action &a)
+	  {
+	    double proba[3];
+
+	    // Compute the probabilities to select each action
+	    // normalized in 0, 1.0
+	    double sum_proba = compute_probability(s, params, proba);
+
+	    double rand_val_action = sum_proba * popot::math::uniform_random(0.0, 1.0);
+	    double str;
+	    if(rand_val_action <= proba[0])
+	      str = -1.0;
+	    else if(rand_val_action <= proba[0]+proba[1])
+	      str = 0.0;
+	    else
+	      str = 1.0;
+	    a._f = str;
+
+	  }
+	};
+
+
 
 
       }
@@ -71,8 +358,8 @@ namespace popot {
 	  double _theta, _dtheta;
 	  
 	  State() {
-	    _theta = PARAMS::theta_range().first + popot::math::uniform_random(0., 1.) * (PARAMS::theta_range().second - PARAMS::theta_range().first);
-	    _dtheta = PARAMS::dtheta_range().first + popot::math::uniform_random(0., 1.) * (PARAMS::dtheta_range().second - PARAMS::dtheta_range().first);
+	    _theta = popot::math::uniform_random(PARAMS::theta_range().first, PARAMS::theta_range().second);
+	    _dtheta = popot::math::uniform_random(PARAMS::dtheta_range().first, PARAMS::dtheta_range().second);
 	  }
 	};
        
