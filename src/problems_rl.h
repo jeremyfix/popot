@@ -536,10 +536,8 @@ namespace popot {
 	};
 
 	template<typename STATE, typename PARAMS>
-	class RBFPolicy
+        struct RBFPolicy
 	{
-	public:
-
 	  static int dimension() {
 	    return 3 * (PARAMS::nb_centers() * PARAMS::nb_centers() + 1);
 	  }
@@ -614,6 +612,9 @@ namespace popot {
 
       }
 
+      /**
+       * Acrobat problem. With the parameters given below, the problem is deterministic
+       **/
       namespace acrobat {
 
 	struct Params {
@@ -650,6 +651,8 @@ namespace popot {
 	  static double m2l1_2(void) { return m2() * l1() * l1();}
 	  static double m2lc2_2(void) { return m2() * lc2() * lc2();}
 	  static double m2l1lc2(void) { return m2() * l1() * lc2();}
+
+	  static double max_torque(void) { return 2.0;}
 	};
 
 	struct GoalState {
@@ -660,6 +663,27 @@ namespace popot {
 	  static std::pair<double, double> dtheta2_range() { return std::make_pair(-M_PI_2, M_PI_2);}
 	};
 	
+	static void bound(double& var, std::pair<double, double> bounds, bool angular=false) {
+	  if(!angular) {
+	    if(var < bounds.first) 
+	      var = bounds.first;
+	    else if(var > bounds.second)
+	      var = bounds.second;
+	  }
+	  else {
+	    if(var < bounds.first)
+	      while(var < bounds.first)
+		var += 2.0 * M_PI;
+	    else if(var > bounds.second)
+	      while(var > bounds.second)
+		var -= 2.0 * M_PI;
+	  }
+	}
+
+	static bool is_in_bounds(double var, std::pair<double, double> bounds) {
+	  return var >= bounds.first && var <= bounds.second;
+	}
+
 
 	template<typename PARAMS>
 	struct State {
@@ -751,27 +775,6 @@ namespace popot {
 	    return AcrobatParams::l1() * sin(s._theta1) + AcrobatParams::l2() * sin(s._theta1+s._theta2);
 	  }
 	  
-
-	  static void bound(double& var, std::pair<double, double> bounds, bool angular=false) {
-	    if(!angular) {
-	      if(var < bounds.first) 
-		var = bounds.first;
-	      else if(var > bounds.second)
-		var = bounds.second;
-	    }
-	    else {
-	      if(var < bounds.first)
-		while(var < bounds.first)
-		  var += 2.0 * M_PI;
-	      else if(var > bounds.second)
-		while(var > bounds.second)
-		  var -= 2.0 * M_PI;
-	    }
-	  }
-
-	  static bool is_in_bounds(double var, std::pair<double, double> bounds) {
-	    return var >= bounds.first && var <= bounds.second;
-	  }
 
 	  static void transition(State<StateParams> &s, Action& a, double &rew, int &eoe) {
 	    double torque = a._f + AcrobatParams::strNoise() * popot::math::uniform_random(-1, 1);
@@ -872,15 +875,97 @@ namespace popot {
 
 	struct RBFParams {
 	  static int nb_centers() { return 4;}
-	  static std::pair<double, double> theta1_range() { return std::make_pair(-M_PI_2, 3.0 * M_PI_2);}
-	  static std::pair<double, double> theta2_range() { return std::make_pair(-M_PI, M_PI);}
+
+	  // The following defines the range for defining the centers of the basis functions
+	  static std::pair<double, double> theta1_range() { return std::make_pair(-M_PI/4.0, 3.0 * M_PI/4.0);}
+	  static std::pair<double, double> theta2_range() { return std::make_pair(-M_PI/4.0, 3.0 * M_PI_4);}
 	  // The bounds for the speeds
 	  static std::pair<double, double> dtheta1_range() { return std::make_pair(-9.0, 9.0);}
-	  static std::pair<double, double> dtheta2_range() { return std::make_pair(-4.0 * M_PI, 4.0 * M_PI);}
+	  static std::pair<double, double> dtheta2_range() { return std::make_pair(-9.0, 9.0);}
+
+	  // The followings define the ranges in which we switch to the LQR controller
+	  static std::pair<double, double> theta1_range_for_lqr() { return std::make_pair(M_PI_2-M_PI/4.0, M_PI_2+M_PI/4.0);}
+	  static std::pair<double, double> theta2_range_for_lqr() { return std::make_pair(-M_PI/4.0, M_PI/4.0);}
+	  // The bounds for the speeds
+	  static std::pair<double, double> dtheta1_range_for_lqr() { return std::make_pair(-M_PI_2, M_PI_2);}
+	  static std::pair<double, double> dtheta2_range_for_lqr() { return std::make_pair(-M_PI_2, M_PI_2);}
 	};
 
-      }
+	double get_ith(int i, int Ni, std::pair<double, double> range) {
+	  return range.first + double(i) * (range.second - range.first) / double(Ni-1.0);
+	}
 
+	template<typename STATE, typename PARAMS, typename AcrobatParams>
+	struct Policy {
+
+	  static int dimension() {
+	    return PARAMS::nb_centers() * PARAMS::nb_centers() * PARAMS::nb_centers() * PARAMS::nb_centers()+1;
+	  }
+	  static double lbound(size_t index) { return -300;}
+	  static double ubound(size_t index) { return  300;}
+
+	  static double sample_rbf(STATE& s, double * params) {
+	    double str = 0.0;
+	    int param_index = 0;
+
+	    double mu_theta1, mu_theta2, mu_dtheta1, mu_dtheta2;
+	    double sigma_theta1 = 1.0 / double(PARAMS::nb_centers());
+	    double sigma_theta2 = 1.0 / double(PARAMS::nb_centers());
+	    double sigma_dtheta1 = (PARAMS::dtheta1_range().second -  PARAMS::dtheta1_range().first)/ double(2.0 * PARAMS::nb_centers());
+	    double sigma_dtheta2 = (PARAMS::dtheta2_range().second -  PARAMS::dtheta2_range().first)/ double(2.0 * PARAMS::nb_centers());
+
+	    str += params[param_index++];
+	    double dist_theta1, dist_theta2, dist_dtheta1, dist_dtheta2;
+	    unsigned int j_theta1, j_theta2, j_dtheta1, j_dtheta2;
+	    for(j_theta1 = 0; j_theta1 < PARAMS::nb_centers(); ++j_theta1) {
+	      mu_theta1 = get_ith(j_theta1, PARAMS::nb_centers(), PARAMS::theta1_range());
+	      dist_theta1 = pow(sin(s._theta1 - mu_theta1), 2.0) / (2.0 * sigma_theta1 * sigma_theta1);
+	      for(j_theta2 = 0; j_theta2 < PARAMS::nb_centers(); ++j_theta2) {
+		mu_theta2 = get_ith(j_theta2, PARAMS::nb_centers(), PARAMS::theta2_range());
+		dist_theta2 = pow(sin(s._theta2 - mu_theta2), 2.0) / (2.0 * sigma_theta2 * sigma_theta2);
+		for(j_dtheta1 = 0; j_dtheta1 < PARAMS::nb_centers(); ++j_dtheta1) {
+		  mu_dtheta1 = get_ith(j_dtheta1, PARAMS::nb_centers(), PARAMS::dtheta1_range());
+		  dist_dtheta1 = pow(s._dtheta1 - mu_dtheta1, 2.0) / (2.0 * sigma_dtheta1 * sigma_dtheta1);
+		  for(j_dtheta2 = 0; j_dtheta2 < PARAMS::nb_centers(); ++j_dtheta2) {
+		    mu_dtheta2 = get_ith(j_dtheta2, PARAMS::nb_centers(), PARAMS::dtheta2_range());
+		    dist_dtheta2 = pow(s._dtheta2 - mu_dtheta2, 2.0) / (2.0 * sigma_dtheta2 * sigma_dtheta2);
+		    str += params[param_index++] * exp(- dist_theta1 
+						       - dist_theta2
+						       - dist_dtheta1
+						       - dist_dtheta2);
+		  }
+		}
+	      }
+	    }
+	    str =  AcrobatParams::max_torque() * tanh(str);
+	    return str;
+	  }
+
+	  /**
+	   * LQR controller with LQRD, TS=0.01, l2 = 1.0
+	   **/
+	  static double sample_lqr(STATE& s) {
+	    double K[4] = {-240.7946 , -59.8844 , -88.3753 , -25.8847};
+	    double str = -( K[0] * (s._theta1-M_PI_2) + K[1] * s._theta2 + K[2] * s._dtheta1 + K[3] * s._dtheta2);
+	    bound(str, std::make_pair(-AcrobatParams::max_torque(), -AcrobatParams::max_torque()));
+	    return str;
+	  }
+	  
+	  static void sample_action(STATE& s, double* params, Action& a) {
+	    double str;
+	    if(is_in_bounds(s._theta1, PARAMS::theta1_range_for_lqr()) &&
+	       is_in_bounds(s._theta2, PARAMS::theta2_range_for_lqr()) &&
+	       is_in_bounds(s._dtheta1, PARAMS::dtheta1_range_for_lqr()) &&
+	       is_in_bounds(s._dtheta2, PARAMS::dtheta2_range_for_lqr()))
+	      a._f = sample_lqr(s);
+	    else
+	      a._f = sample_rbf(s, params);
+	  }
+	  
+	};
+	
+      }
+      
     }
   }
 }
