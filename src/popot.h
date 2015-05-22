@@ -34,6 +34,7 @@
 #include "mersenne.h"
 #include "neighborhood.h"
 #include "problems.h"
+#include "problems_rl.h"
 #include "rng_generators.h"
 #include "standard_pso.h"
 #include "topology.h"

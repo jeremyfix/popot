@@ -353,7 +353,7 @@ namespace popot
 	  while(!stop())
 	    {
 	      step();
-	      if(verbose) std::cout << '\r' << std::setw(6) << std::setfill('0') << epoch << " " << getBest().getFitness() << std::setw(5) << std::setfill(' ') << ' ' << std::flush;
+	      if(verbose) std::cout << '\r' << std::setw(6) << std::setfill('0') << epoch << " " << getBest().getFitness() << "                  " << std::flush;
 	    }
 	  if(verbose) std::cout << std::endl;
 	}
