@@ -633,6 +633,243 @@ namespace popot
     }
   }
 
+
+  namespace GWO {
+    namespace algorithm
+    {
+      typedef popot::GWO::Loup Loup ;
+      
+      template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      class GWO : public popot::algorithm::Base {
+	
+	typedef Loup::TVector TVector;
+
+      private:
+	const size_t _nbLoups;  	
+	const size_t _dimension;
+	const LBOUND_FUNC& _lbound;
+	const UBOUND_FUNC& _ubound;
+	const STOP_CRITERIA& _stop_criteria;
+	const size_t _nb_max_iterations;
+	size_t _nbIteration;
+	double a;
+	const COST_FUNCTION& _cost_function;
+	std::vector<Loup*> _tousLesLoups;
+	//std::array<TVector, 3> _troisMeilleurs;
+
+	double _bestFitness;
+	TVector _bestPosition;
+
+	Loup loupAlpha;
+	Loup loupBeta;
+	Loup loupDelta;
+
+
+      public:
+
+
+      GWO(
+      	const size_t nbLoups,
+      	const size_t dimension,
+      	const LBOUND_FUNC &lbound,
+      	const UBOUND_FUNC &ubound,
+      	const size_t nb_max_iterations, 
+	    const STOP_CRITERIA &stop_criteria,
+	    const COST_FUNCTION &cost_function)
+
+      : popot::algorithm::Base(),
+		_nbLoups(nbLoups),
+		_dimension(dimension),
+		_lbound(lbound),
+		_ubound(ubound),
+	  	_stop_criteria(stop_criteria),
+	  	_cost_function(cost_function),
+	  	_nbIteration(0),
+	  	_nb_max_iterations(nb_max_iterations),
+	  	a(2.0) 
+	  	{
+		  init(); //test peut être pas la peine on le fait ailleurs
+		}
+
+	~GWO() {
+	  // Bien désallouer la mémoire des trucs alloués par new
+	  for(auto& loupPtr : _tousLesLoups)
+	    delete loupPtr;
+	  _tousLesLoups.clear();
+	}
+
+	void init(void)  {
+	  // Clear memory
+	  for(auto& loupPtr: _tousLesLoups)
+	    delete loupPtr;
+	  _tousLesLoups.clear();
+	  
+
+	  // Allocate the wolves
+	  for( size_t i=0; i<_nbLoups ; i++)
+	    _tousLesLoups.push_back(new Loup(_dimension));
+	  
+	  // init the wolves and find the best
+	  for(size_t i = 0; i < _nbLoups; i++)
+	    _tousLesLoups[i]->init(_lbound, _ubound, _cost_function);
+	  findBestFitness();
+
+	  _nbIteration = 0;
+
+	}
+
+
+	bool stop(void) {
+	  return _stop_criteria(getBestFitness(), _nbIteration) ;
+	}
+
+	void step(void){
+	  _nbIteration++;
+	  std::cout << "iteration numéro" << _nbIteration << std::endl;
+	  a = std::max(0., 2 - 2.0 * _nbIteration / _nb_max_iterations);  
+	  findBestFitness(); // remplit le tableau _troisMeilleurs avec les positions des loups alpha, beta et delta
+	  std::cout << " BestFitness = " <<_bestFitness << std::endl ;
+	  for(size_t i=0; i<_nbLoups; i++){
+	  	//std::cout << "loup numéro" << i << std::endl;
+	    for(unsigned int j = 0 ; j < _dimension; ++j) {
+	    	//std::cout << "coordonnée numéro" << j << std::endl;
+	      double A1 = popot::math::uniform_random(-a, a);
+	      double C1 = popot::math::uniform_random(0, 2);
+	      //double d_alpha = fabs(C1 * _troisMeilleurs[0][j] - (*_tousLesLoups[i])[j]);
+		  double d_alpha = fabs(C1 * loupAlpha[j] - (*_tousLesLoups[i])[j]);
+	      //double x1 = _troisMeilleurs[0][j] - A1 * d_alpha;
+          double x1 = loupAlpha[j] - A1 * d_alpha;
+
+	      double A2 = popot::math::uniform_random(-a, a);
+	      double C2 = popot::math::uniform_random(0, 2);
+	      //double d_beta = fabs(C2 * _troisMeilleurs[1][j] - (*_tousLesLoups[i])[j]);
+		  double d_beta = fabs(C2 * loupBeta[j] - (*_tousLesLoups[i])[j]);
+	      //double x2 = _troisMeilleurs[1][j] - A2 * d_beta;
+	      double x2 = loupBeta[j] - A2 * d_beta;
+
+	      double A3 = popot::math::uniform_random(-a, a);
+	      double C3 = popot::math::uniform_random(0, 2);
+	      //double d_delta = fabs(C3 * _troisMeilleurs[2][j] - (*_tousLesLoups[i])[j]);
+	      double d_delta = fabs(C3 * loupDelta[j] - (*_tousLesLoups[i])[j]);
+	      //double x3 = _troisMeilleurs[2][j] - A3 * d_delta;
+	      double x3 = loupDelta[j] - A3 * d_delta;
+
+
+	      (*_tousLesLoups[i])[j] = (x1 + x2 + x3)/3.0;
+	      if((*_tousLesLoups[i])[j] < _lbound(j))
+		(*_tousLesLoups[i])[j] = _lbound(j);
+	      else if((*_tousLesLoups[i])[j] > _ubound(j))
+		(*_tousLesLoups[i])[j] = _ubound(j);
+	    }
+	    _tousLesLoups[i]->computeFitness(_cost_function);
+	    std::cout << "fitness " << _tousLesLoups[i]->getFitness() << std::endl;
+	  }
+
+	  // a n'a pas l'air de diminuer au fur et à mesure ...
+	  //a = a*(1-1/(30*_dimension));
+	  //a = a*(1-1/((double) _nb_max_iterations));
+
+	  // si on met a = a - 0.1, a devient négatif => ça devrait marcher
+	}
+
+	void findBestFitness(){
+		for ( size_t i = 0; i<_nbLoups ; i++){
+			if ( _tousLesLoups[i]->getFitness() > loupAlpha.getFitness()){
+				loupDelta = loupBeta;
+				loupBeta = loupAlpha;
+				loupAlpha = *(_tousLesLoups[i]);
+			}
+			else if (_tousLesLoups[i]->getFitness()<= loupAlpha.getFitness() && _tousLesLoups[i]->getFitness() > loupBeta.getFitness()){
+				loupDelta = loupBeta;
+				loupBeta = *(_tousLesLoups[i]);
+			}
+			else if (_tousLesLoups[i]->getFitness()<= loupBeta.getFitness() && _tousLesLoups[i]->getFitness() > loupDelta.getFitness()){
+				loupDelta = *(_tousLesLoups[i]);
+			}
+
+			_bestFitness = loupAlpha.getFitness();
+
+		}
+		
+
+	}
+
+	/*//fonction permettant de trouver l'indice du loup ayant la meilleure fitness
+	void findBestFitness(){
+
+	  // Collect the fitnesses in a collection of pairs to be sorted
+	  std::vector<std::pair<unsigned int, double> > fitnesses;
+	  for(unsigned int i = 0 ; i < _nbLoups; ++i)
+	    fitnesses.push_back(std::make_pair(i, _tousLesLoups[i]->getFitness()));
+	  
+	  // Sort them by decreasing fitness
+	  std::sort(fitnesses.begin(), fitnesses.end(),
+		    [](std::pair<unsigned int, double> a,
+		       std::pair<unsigned int, double> b) -> bool {
+		      return a.second >= b.second;});
+	  // Keep the 3 first best
+	  auto iter = fitnesses.begin();
+	  for(unsigned int i = 0 ; i < 3; ++i)
+	   _troisMeilleurs[i] = *(_tousLesLoups[(iter++)->first]);
+	   _bestPosition = *(_tousLesLoups[fitnesses.begin()->first]);
+	   _bestFitness = fitnesses.begin()->second;
+
+	} */
+
+	/*Loup multiplierVecteurs(Loup* v1, Loup* v2){
+	  Loup res;
+	  if(v1.size() == v2.size()){
+	  for(size_t i=0; i<v1.size(); i++){
+	  res[i]=v1[i]*v2[i];
+	  }
+	  }
+	  return res;
+	  }*/
+
+	void run(int verbose=0) {
+		while(!stop()) 
+	      step();
+	}
+
+	double getBestFitness() const {
+	  return _bestFitness;
+	}
+
+	void fillBestPosition(double * position) {
+	    //auto values_ptr = _troisMeilleurs[0].getValuesPtr(); // ATTENTION 
+	    //std::copy(values_ptr, values_ptr + _dimension, position);
+	}
+
+	
+	void print(int mode) {
+	/*
+	  if(mode == 0) {
+	  std::cout << "The wolves : " << std::endl;
+	  for(auto& l: _tousLesLoups)
+	    std::cout << *l << std::endl;
+
+	  std::cout << "The three best wolves: " << std::endl;
+	  for(auto& l: _troisMeilleurs)
+	    std::cout << l << std::endl;
+	  }
+	  else if (mode == 1) {
+	    std::cout << "Best position : " << _bestPosition << " f = " << _bestFitness << std::endl;
+	  }*/
+	std::cout << loupAlpha << std::endl;
+	std::cout << loupBeta << std::endl;
+	std::cout << loupDelta << std::endl;
+
+	}
+	
+	
+
+
+
+      };
+    }
+  }
+
+
   namespace ABC
   {
     namespace algorithm
@@ -860,6 +1097,20 @@ namespace popot
 	      const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	      const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
       return new popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(dimension, lbound, ubound, stop, func);
+    }
+
+
+    
+    /**
+     * GWO algorithm
+     **/
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      popot::GWO::algorithm::GWO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>*
+      gwo(size_t nbLoups, size_t dimension,
+	  const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound, const size_t nb_max_iterations,
+	  const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
+	  	//std::cout << "Fonction qui sert à rien appelée " << std::endl; //test
+      return new popot::GWO::algorithm::GWO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(nbLoups, dimension, lbound, ubound, nb_max_iterations,  stop, func);
     }
 
 

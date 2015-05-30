@@ -1178,6 +1178,150 @@ namespace popot
 
   } // namespace ABC
 
+
+
+  namespace GWO {
+
+    class Loup : public Vector<double>
+      {
+      public:
+	typedef Vector<double> TVector;
+
+      private:
+	double _fitness;
+	double _fvalue;
+	size_t _counter;
+
+      public:
+
+      Loup(size_t dimension)
+	: TVector(dimension),
+	  _fitness(0), 
+	  _fvalue(0), 
+	  _counter(0)
+	    {}
+
+      Loup(): TVector(), _fitness(0), _fvalue(0), _counter(0)
+	  {}
+
+	/**
+	 * Copy constructor
+	 */
+      Loup(const Loup & other) 
+	: TVector(other), 
+	  _fitness(other._fitness), 
+	  _fvalue(other._fvalue), 
+	  _counter(other._counter)
+	    {
+	    }
+
+	virtual ~Loup(void)
+	  {}
+
+	template<typename LBOUND_FUNC, typename UBOUND_FUNC, typename COST_FUNCTION>
+	  void init(const LBOUND_FUNC& lbound, const UBOUND_FUNC &ubound, const COST_FUNCTION& cost_function)
+	{
+	  for(size_t i = 0 ; i < this->_dimension ; ++i)
+	    (*this)[i] = popot::math::uniform_random(lbound(i), ubound(i));
+
+	  computeFitness(cost_function);
+
+	  // Initialize the counter
+	  _counter = 0;
+	}
+
+	template<typename COST_FUNCTION>
+	  void computeFitness(const COST_FUNCTION& cost_function)  {
+	  // Compute the fitness
+	  _fvalue = cost_function(*this);
+	  _fitness = fitnessFunction(_fvalue);
+	}
+
+	double fitnessFunction(double x)  {
+	  if(x >= 0.0)
+	    return 1.0 / (1.0 + x);
+	  else
+	    return 1.0 + fabs(x);
+	}
+
+	double getFitness(void)
+	{
+		
+	  return _fitness;
+	}
+
+	double getFValue(void) const
+	{
+	  return _fvalue;
+	}
+
+	Loup* multiplierScalaire(double a){
+	  Loup* res = new Loup(this->_dimension);
+	  for(size_t i=0; i<(this->_dimension); i++){
+	  	double double_res = a*((*this)[i]);
+	    (*res)[i] = double_res;
+	  }
+	  	
+	  return res;
+	}	
+
+	Loup* additionner(Loup* loup){
+	  Loup* res = new Loup(this->_dimension);
+	  if(this->size() == loup->size()){
+	  		// std::cout << "on est rentré !!!" << std::endl; //test
+	    for(size_t i=0; i<(loup->size()); i++){
+	    	double double_res = (*this)[i]+(*loup)[i];
+	    	(*res)[i]=double_res;
+	    	}
+	  }
+	  return res;
+	}
+
+	Loup* soustraire(Loup* loup){
+	  Loup* res = new Loup(this->_dimension);
+	  if(this->size() == loup->size()){
+	  	for(size_t i=0; i<(loup->size()); i++){
+	    	double double_res = (*this)[i]-(*loup)[i];
+	      (*res)[i]=double_res;
+	      }
+	  }
+	  return res;
+	}
+	Loup* absolu(){
+	  Loup* res = new Loup(this->_dimension);
+	    for(size_t i=0; i<(this->size()); i++){
+	    	double double_res = std::abs((*this)[i]);
+	      	(*res)[i]=double_res;
+	  	}
+	  return res;
+	}
+
+
+
+
+
+	virtual void print(std::ostream & os) const
+	{
+	  TVector::print(os);
+	  os << " Fitness : " << _fitness << " Fvalue : " << _fvalue << " Count : " << _counter;
+	}
+
+	/**
+	 * Serialization operator, for display
+	 */
+	friend std::ostream & operator <<(std::ostream & os, const Loup &b)
+	  {
+	    b.print(os);
+	    return os;
+	  }
+
+      }; // Loup     
+
+  } // namespace GWO
+
+
+
+
 }//namespace popot
 
 #endif // POPOT_INDIVIDUALS_H
