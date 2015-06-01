@@ -1197,11 +1197,10 @@ namespace popot
       Loup(size_t dimension)
 	: TVector(dimension),
 	  _fitness(0), 
-	  _fvalue(0), 
 	  _counter(0)
 	    {}
 
-      Loup(): TVector(), _fitness(0), _fvalue(0), _counter(0)
+      Loup(): TVector(), _fitness(0),  _counter(0)
 	  {}
 
 	/**
@@ -1210,7 +1209,6 @@ namespace popot
       Loup(const Loup & other) 
 	: TVector(other), 
 	  _fitness(other._fitness), 
-	  _fvalue(other._fvalue), 
 	  _counter(other._counter)
 	    {
 	    }
@@ -1233,15 +1231,7 @@ namespace popot
 	template<typename COST_FUNCTION>
 	  void computeFitness(const COST_FUNCTION& cost_function)  {
 	  // Compute the fitness
-	  _fvalue = cost_function(*this);
-	  _fitness = fitnessFunction(_fvalue);
-	}
-
-	double fitnessFunction(double x)  {
-	  if(x >= 0.0)
-	    return 1.0 / (1.0 + x);
-	  else
-	    return 1.0 + fabs(x);
+	  _fitness = cost_function(*this);
 	}
 
 	double getFitness(void)
@@ -1250,60 +1240,10 @@ namespace popot
 	  return _fitness;
 	}
 
-	double getFValue(void) const
-	{
-	  return _fvalue;
-	}
-
-	Loup* multiplierScalaire(double a){
-	  Loup* res = new Loup(this->_dimension);
-	  for(size_t i=0; i<(this->_dimension); i++){
-	  	double double_res = a*((*this)[i]);
-	    (*res)[i] = double_res;
-	  }
-	  	
-	  return res;
-	}	
-
-	Loup* additionner(Loup* loup){
-	  Loup* res = new Loup(this->_dimension);
-	  if(this->size() == loup->size()){
-	  		// std::cout << "on est rentré !!!" << std::endl; //test
-	    for(size_t i=0; i<(loup->size()); i++){
-	    	double double_res = (*this)[i]+(*loup)[i];
-	    	(*res)[i]=double_res;
-	    	}
-	  }
-	  return res;
-	}
-
-	Loup* soustraire(Loup* loup){
-	  Loup* res = new Loup(this->_dimension);
-	  if(this->size() == loup->size()){
-	  	for(size_t i=0; i<(loup->size()); i++){
-	    	double double_res = (*this)[i]-(*loup)[i];
-	      (*res)[i]=double_res;
-	      }
-	  }
-	  return res;
-	}
-	Loup* absolu(){
-	  Loup* res = new Loup(this->_dimension);
-	    for(size_t i=0; i<(this->size()); i++){
-	    	double double_res = std::abs((*this)[i]);
-	      	(*res)[i]=double_res;
-	  	}
-	  return res;
-	}
-
-
-
-
-
 	virtual void print(std::ostream & os) const
 	{
 	  TVector::print(os);
-	  os << " Fitness : " << _fitness << " Fvalue : " << _fvalue << " Count : " << _counter;
+	  os << " Fitness : " << _fitness << " , Count : " << _counter;
 	}
 
 	/**

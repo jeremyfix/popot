@@ -725,25 +725,25 @@ namespace popot
 
 	void step(void){
 	  _nbIteration++;
-	  std::cout << "iteration numéro" << _nbIteration << std::endl;
+	  //std::cout << "iteration numéro" << _nbIteration << std::endl;
 	  a = std::max(0., 2 - 2.0 * _nbIteration / _nb_max_iterations);  
 	  findBestFitness(); // remplit le tableau _troisMeilleurs avec les positions des loups alpha, beta et delta
-	  std::cout << " BestFitness = " <<_bestFitness << std::endl ;
+	  //std::cout << " BestFitness = " <<_bestFitness << std::endl ;
 	  for(size_t i=0; i<_nbLoups; i++){
-	  	//std::cout << "loup numéro" << i << std::endl;
+	    //std::cout << "loup numéro" << i << std::endl;
 	    for(unsigned int j = 0 ; j < _dimension; ++j) {
-	    	//std::cout << "coordonnée numéro" << j << std::endl;
+	      //std::cout << "coordonnée numéro" << j << std::endl;
 	      double A1 = popot::math::uniform_random(-a, a);
 	      double C1 = popot::math::uniform_random(0, 2);
 	      //double d_alpha = fabs(C1 * _troisMeilleurs[0][j] - (*_tousLesLoups[i])[j]);
-		  double d_alpha = fabs(C1 * loupAlpha[j] - (*_tousLesLoups[i])[j]);
+	      double d_alpha = fabs(C1 * loupAlpha[j] - (*_tousLesLoups[i])[j]);
 	      //double x1 = _troisMeilleurs[0][j] - A1 * d_alpha;
-          double x1 = loupAlpha[j] - A1 * d_alpha;
+	      double x1 = loupAlpha[j] - A1 * d_alpha;
 
 	      double A2 = popot::math::uniform_random(-a, a);
 	      double C2 = popot::math::uniform_random(0, 2);
 	      //double d_beta = fabs(C2 * _troisMeilleurs[1][j] - (*_tousLesLoups[i])[j]);
-		  double d_beta = fabs(C2 * loupBeta[j] - (*_tousLesLoups[i])[j]);
+	      double d_beta = fabs(C2 * loupBeta[j] - (*_tousLesLoups[i])[j]);
 	      //double x2 = _troisMeilleurs[1][j] - A2 * d_beta;
 	      double x2 = loupBeta[j] - A2 * d_beta;
 
@@ -762,7 +762,7 @@ namespace popot
 		(*_tousLesLoups[i])[j] = _ubound(j);
 	    }
 	    _tousLesLoups[i]->computeFitness(_cost_function);
-	    std::cout << "fitness " << _tousLesLoups[i]->getFitness() << std::endl;
+	    //std::cout << "fitness " << _tousLesLoups[i]->getFitness() << std::endl;
 	  }
 
 	  // a n'a pas l'air de diminuer au fur et à mesure ...
@@ -772,29 +772,34 @@ namespace popot
 	  // si on met a = a - 0.1, a devient négatif => ça devrait marcher
 	}
 
+	/*
 	void findBestFitness(){
-		for ( size_t i = 0; i<_nbLoups ; i++){
-			if ( _tousLesLoups[i]->getFitness() > loupAlpha.getFitness()){
-				loupDelta = loupBeta;
-				loupBeta = loupAlpha;
-				loupAlpha = *(_tousLesLoups[i]);
-			}
-			else if (_tousLesLoups[i]->getFitness()<= loupAlpha.getFitness() && _tousLesLoups[i]->getFitness() > loupBeta.getFitness()){
-				loupDelta = loupBeta;
-				loupBeta = *(_tousLesLoups[i]);
-			}
-			else if (_tousLesLoups[i]->getFitness()<= loupBeta.getFitness() && _tousLesLoups[i]->getFitness() > loupDelta.getFitness()){
-				loupDelta = *(_tousLesLoups[i]);
-			}
 
-			_bestFitness = loupAlpha.getFitness();
+	  
+	  for ( size_t i = 0; i<_nbLoups ; i++){
+	    if ( _tousLesLoups[i]->getFitness() > loupAlpha.getFitness()){
+	      loupDelta = loupBeta;
+	      loupBeta = loupAlpha;
+	      loupAlpha = *(_tousLesLoups[i]);
+	    }
+	    else if (_tousLesLoups[i]->getFitness()<= loupAlpha.getFitness() && _tousLesLoups[i]->getFitness() > loupBeta.getFitness()){
+	      loupDelta = loupBeta;
+	      loupBeta = *(_tousLesLoups[i]);
+	    }
+	    else if (_tousLesLoups[i]->getFitness()<= loupBeta.getFitness() && _tousLesLoups[i]->getFitness() > loupDelta.getFitness()){
+	      loupDelta = *(_tousLesLoups[i]);
+	    }
 
-		}
+	    _bestFitness = loupAlpha.getFitness();
+
+	  }
 		
 
 	}
 
-	/*//fonction permettant de trouver l'indice du loup ayant la meilleure fitness
+*/
+
+	//fonction permettant de trouver l'indice du loup ayant la meilleure fitness
 	void findBestFitness(){
 
 	  // Collect the fitnesses in a collection of pairs to be sorted
@@ -802,19 +807,18 @@ namespace popot
 	  for(unsigned int i = 0 ; i < _nbLoups; ++i)
 	    fitnesses.push_back(std::make_pair(i, _tousLesLoups[i]->getFitness()));
 	  
-	  // Sort them by decreasing fitness
+	  // Sort them by increasing fitness
 	  std::sort(fitnesses.begin(), fitnesses.end(),
 		    [](std::pair<unsigned int, double> a,
 		       std::pair<unsigned int, double> b) -> bool {
-		      return a.second >= b.second;});
+		      return a.second <= b.second;});
 	  // Keep the 3 first best
 	  auto iter = fitnesses.begin();
-	  for(unsigned int i = 0 ; i < 3; ++i)
-	   _troisMeilleurs[i] = *(_tousLesLoups[(iter++)->first]);
-	   _bestPosition = *(_tousLesLoups[fitnesses.begin()->first]);
-	   _bestFitness = fitnesses.begin()->second;
-
-	} */
+	  loupAlpha = *(_tousLesLoups[(iter++)->first]);
+	  loupBeta = *(_tousLesLoups[(iter++)->first]);
+	  loupDelta = *(_tousLesLoups[(iter++)->first]);
+	  _bestFitness = loupAlpha.getFitness();
+	}
 
 	/*Loup multiplierVecteurs(Loup* v1, Loup* v2){
 	  Loup res;
@@ -827,7 +831,7 @@ namespace popot
 	  }*/
 
 	void run(int verbose=0) {
-		while(!stop()) 
+	  while(!stop()) 
 	      step();
 	}
 
@@ -855,10 +859,10 @@ namespace popot
 	  else if (mode == 1) {
 	    std::cout << "Best position : " << _bestPosition << " f = " << _bestFitness << std::endl;
 	  }*/
-	std::cout << loupAlpha << std::endl;
-	std::cout << loupBeta << std::endl;
-	std::cout << loupDelta << std::endl;
-
+	  std::cout << loupAlpha << std::endl;
+	  std::cout << loupBeta << std::endl;
+	  std::cout << loupDelta << std::endl;
+	  
 	}
 	
 	
