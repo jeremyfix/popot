@@ -115,5 +115,7 @@ plt.xlabel(r'Function evaluations (log)')
 
 plt.legend()
 
+plt.savefig("results.png", bbox_inches='tight')
+
 
 plt.show()
