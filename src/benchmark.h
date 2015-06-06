@@ -416,7 +416,7 @@ namespace popot
 	  std.append(v);
 	
 	results["problem"]["name"] = problem_name;
-	results["problem"]["dimension"] = _problem.getDim();
+	results["problem"]["dimension"] = int(_problem.getDim());
 	  
 	results["algorithm"] = algo_name;
 	results["nb_trials"] = _nb_trials;

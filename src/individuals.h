@@ -30,6 +30,7 @@
 #include <fstream>
 #include <numeric>
 #include <list>
+#include <stdexcept>
 
 #include "maths.h"
 #include "neighborhood.h"
