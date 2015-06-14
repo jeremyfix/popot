@@ -1261,6 +1261,108 @@ namespace popot
   } // namespace GWO
 
 
+namespace CSO {
+
+    class Cat : public Vector<double>
+      {
+      public:
+	typedef Vector<double> TVector;
+
+      private:
+	double _fitness;
+	double _fvalue;
+	size_t _counter;
+	bool _seekingMode;
+	double _velocity;
+	TVector* _velocities;
+
+      public:
+
+      Cat(size_t dimension)
+	: TVector(dimension),
+	  _fitness(0), 
+	  _counter(0),
+	  _seekingMode(true)
+	    {
+	    	_velocities = new TVector(dimension);
+	    }
+
+      Cat(): TVector(), _fitness(0),  _counter(0), _seekingMode(true), _velocities()
+	  {}
+
+	/**
+	 * Copy constructor
+	 */
+      Cat(const Cat & other) 
+	: TVector(other), 
+	  _fitness(other._fitness), 
+	  _counter(other._counter),
+	  _seekingMode(other._seekingMode),
+	  _velocities(other._velocities)
+	    {
+	    }
+
+	virtual ~Cat(void)
+	  {delete _velocities;}
+
+	template<typename LBOUND_FUNC, typename UBOUND_FUNC, typename COST_FUNCTION>
+	  void init(const LBOUND_FUNC& lbound, const UBOUND_FUNC &ubound, const COST_FUNCTION& cost_function)
+	{
+	  for(size_t i = 0 ; i < this->_dimension ; ++i)
+	    (*this)[i] = popot::math::uniform_random(lbound(i), ubound(i));
+
+	  computeFitness(cost_function);
+
+	  // Initialize the counter
+	  _counter = 0;
+	}
+
+	template<typename COST_FUNCTION>
+	  void computeFitness(const COST_FUNCTION& cost_function)  {
+	  // Compute the fitness
+	  _fitness = cost_function(*this);
+	}
+
+	double getFitness(void)
+	{
+		
+	  return _fitness;
+	}
+
+	double getVelocities(size_t j){
+		return (*_velocities)[j];
+	}
+
+	void setVelocities(size_t j, double velo) {
+		(*_velocities)[j] = velo;
+	}
+
+	void setSeekingMode (bool newMode){
+		_seekingMode = newMode;
+	}
+
+	bool getSeekingMode (){
+		return _seekingMode ;
+	}
+
+	virtual void print(std::ostream & os) const
+	{
+	  TVector::print(os);
+	  os << " Fitness : " << _fitness << " , Count : " << _counter;
+	}
+
+	/**
+	 * Serialization operator, for display
+	 */
+	friend std::ostream & operator <<(std::ostream & os, const Cat &b)
+	  {
+	    b.print(os);
+	    return os;
+	  }
+
+      }; // Cat     
+
+  } // namespace CSO
 
 
 }//namespace popot
