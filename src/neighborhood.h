@@ -25,6 +25,7 @@
 
 #include <vector>
 #include <algorithm>
+#include <functional>
 #include "exceptions.h"
 #include "maths.h"
 

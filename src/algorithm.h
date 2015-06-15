@@ -1019,6 +1019,7 @@ namespace CSO {
 	void findBestFitness(){
 
 		// Collect the fitnesses in a collection of pairs to be sorted
+	  std::vector<std::pair<unsigned int, double>> fitnesses;
 	  for(unsigned int i = 0 ; i < _nbCats; ++i)
 	    fitnesses.push_back(std::make_pair(i, _allCats[i]->getFitness()));
 	 // Sort them by increasing fitness
@@ -1612,10 +1613,7 @@ namespace CSO {
     }
 
     // The parameters for updating the velocity of the particles
-    class 
-
-
-    _Params
+    class SPSO2011_Params
     {
     public:
       static double w(void) { return 1.0/(2.0*log(2.0));};
