@@ -245,10 +245,9 @@ namespace popot
 
 	    /////////////
 	    // main loop
-	    if(_record_every != -1) 
+	    //if(_record_every != -1) 
 	    while(_problem.getFE() < _problem.max_fe()) {
 	      _algo.step();
-	      
 	      current_fitness = _algo.getBestFitness();
 	      current_fe = _problem.getFE();
 
@@ -264,7 +263,6 @@ namespace popot
 		  if(*history_FE_iter != _problem.getFE()) {
 		    std::ostringstream ostr;
 		    ostr.str("");
-		    ostr << "Cannot measure the mean error over several runs if each step of the algorithm does not produce the same function evaluation step, got " << current_fe << " while expecting " << *history_FE_iter << "; you should call Benchmark by specifying a _record_every != -1 which leads to linearly interpolate the FE and errors on a regular span of [0, max_fe]." << std::endl;
 		    throw std::runtime_error(ostr.str());
 		  }
 		  // if this is coherent, we don't have to record the FE
@@ -289,17 +287,16 @@ namespace popot
 
 		  }
 		  else {
-		    *sum_error_iter += interpolated_fitness;
-		    ++sum_error_iter;
+		  	*sum_error_iter += interpolated_fitness;
+	      	++sum_error_iter;
+
 		    *sum_error2_iter +=  interpolated_fitness*interpolated_fitness;
-		    ++sum_error2_iter;
-	
+	      	++sum_error2_iter;
 		  }
 		  ++history_FE_iter;
 		}
 
 	      }
-
 	      last_fe = current_fe;
 	      last_fitness = current_fitness;
 	    }
@@ -416,7 +413,7 @@ namespace popot
 	  std.append(v);
 	
 	results["problem"]["name"] = problem_name;
-	results["problem"]["dimension"] = _problem.getDim();
+	results["problem"]["dimension"] = int(_problem.getDim());
 	  
 	results["algorithm"] = algo_name;
 	results["nb_trials"] = _nb_trials;

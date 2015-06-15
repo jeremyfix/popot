@@ -633,6 +633,439 @@ namespace popot
     }
   }
 
+
+  namespace GWO {
+    namespace algorithm
+    {
+      typedef popot::GWO::Loup Loup ;
+      
+      template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      class GWO : public popot::algorithm::Base {
+	
+	typedef Loup::TVector TVector;
+
+      private:
+	const size_t _nbLoups;  	
+	const size_t _dimension;
+	const LBOUND_FUNC& _lbound;
+	const UBOUND_FUNC& _ubound;
+	const STOP_CRITERIA& _stop_criteria;
+	const size_t _nb_max_iterations;
+	size_t _nbIteration;
+	double a;
+	const COST_FUNCTION& _cost_function;
+	std::vector<Loup*> _tousLesLoups;
+
+	double _bestFitness;
+	TVector _bestPosition;
+
+	Loup loupAlpha;
+	Loup loupBeta;
+	Loup loupDelta;
+
+
+      public:
+
+
+      GWO(
+      	const size_t nbLoups,
+      	const size_t dimension,
+      	const LBOUND_FUNC &lbound,
+      	const UBOUND_FUNC &ubound,
+      	const size_t nb_max_iterations, 
+	    const STOP_CRITERIA &stop_criteria,
+	    const COST_FUNCTION &cost_function)
+
+      : popot::algorithm::Base(),
+		_nbLoups(nbLoups),
+		_dimension(dimension),
+		_lbound(lbound),
+		_ubound(ubound),
+	  	_stop_criteria(stop_criteria),
+	  	_cost_function(cost_function),
+	  	_nbIteration(0),
+	  	_nb_max_iterations(nb_max_iterations),
+	  	a(2.0) 
+	  	{
+		  init(); 
+		}
+
+	~GWO() {
+	  // Bien désallouer la mémoire des trucs alloués par new
+	  for(auto& loupPtr : _tousLesLoups)
+	    delete loupPtr;
+	  _tousLesLoups.clear();
+	}
+
+	void init(void)  {
+	  // Clear memory
+	  for(auto& loupPtr: _tousLesLoups)
+	    delete loupPtr;
+	  _tousLesLoups.clear();
+	  
+
+	  // Allocate the wolves
+	  for( size_t i=0; i<_nbLoups ; i++)
+	    _tousLesLoups.push_back(new Loup(_dimension));
+	  
+	  // init the wolves and find the best
+	  for(size_t i = 0; i < _nbLoups; i++)
+	    _tousLesLoups[i]->init(_lbound, _ubound, _cost_function);
+	  findBestFitness();
+
+	  _nbIteration = 0;
+
+	}
+
+
+	bool stop(void) {
+	  return _stop_criteria(getBestFitness(), _nbIteration) ;
+	}
+
+	void step(void){
+	  _nbIteration++;
+	  a = std::max(0., 2 - 2.0 * _nbIteration / _nb_max_iterations); 
+	  findBestFitness(); // fonction qui trouve les positions des loups alpha, beta et delta
+	  for(size_t i=0; i<_nbLoups; i++){
+	    for(unsigned int j = 0 ; j < _dimension; j++) {
+	      double A1 = popot::math::uniform_random(-a, a);
+	      double C1 = popot::math::uniform_random(0, 2);
+	      double d_alpha = fabs(C1 * loupAlpha[j] - (*_tousLesLoups[i])[j]);
+	      double x1 = loupAlpha[j] - A1 * d_alpha;
+
+	      double A2 = popot::math::uniform_random(-a, a);
+	      double C2 = popot::math::uniform_random(0, 2);
+	      double d_beta = fabs(C2 * loupBeta[j] - (*_tousLesLoups[i])[j]);
+	      double x2 = loupBeta[j] - A2 * d_beta;
+
+	      double A3 = popot::math::uniform_random(-a, a);
+	      double C3 = popot::math::uniform_random(0, 2);
+	      double d_delta = fabs(C3 * loupDelta[j] - (*_tousLesLoups[i])[j]);
+	      double x3 = loupDelta[j] - A3 * d_delta;
+
+	      (*_tousLesLoups[i])[j] = (x1 + x2 + x3)/3.0;
+	      if((*_tousLesLoups[i])[j] < _lbound(j))
+		(*_tousLesLoups[i])[j] = _lbound(j);
+	      else if((*_tousLesLoups[i])[j] > _ubound(j))
+		(*_tousLesLoups[i])[j] = _ubound(j);
+	    }
+	    _tousLesLoups[i]->computeFitness(_cost_function);
+	  }
+	}
+
+	
+
+	//fonction permettant de trouver les trois meilleurs loups
+	void findBestFitness(){
+
+	  // Collect the fitnesses in a collection of pairs to be sorted
+	  std::vector<std::pair<unsigned int, double> > fitnesses;
+	  for(unsigned int i = 0 ; i < _nbLoups; ++i)
+	    fitnesses.push_back(std::make_pair(i, _tousLesLoups[i]->getFitness()));
+	  
+	  // Sort them by increasing fitness
+	  std::sort(fitnesses.begin(), fitnesses.end(),
+		    [](std::pair<unsigned int, double> a,
+		       std::pair<unsigned int, double> b) -> bool {
+		      return a.second <= b.second;});
+	  // Keep the 3 first best
+	  auto iter = fitnesses.begin();
+	  loupAlpha = *(_tousLesLoups[(iter++)->first]);
+	  loupBeta = *(_tousLesLoups[(iter++)->first]);
+	  loupDelta = *(_tousLesLoups[(iter++)->first]);
+	  _bestFitness = loupAlpha.getFitness();
+	}
+
+
+	void run(int verbose=0) {
+	  while(!stop()) 
+	      step();
+	}
+
+	double getBestFitness() const {
+	  return _bestFitness;
+	}
+
+	void fillBestPosition(double * position) {
+	    
+	}
+
+	
+	void print(int mode) {
+	
+	  std::cout << loupAlpha << std::endl;
+	  std::cout << loupBeta << std::endl;
+	  std::cout << loupDelta << std::endl;
+	  
+	}
+	
+	
+
+
+
+      };
+    }
+  }
+
+
+namespace CSO {
+    namespace algorithm
+    {
+      typedef popot::CSO::Cat Cat ;
+      
+      template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      class CSO : public popot::algorithm::Base {
+	
+	typedef Cat::TVector TVector;
+
+      private:
+	const size_t _nbCats;  	
+	const size_t _dimension;
+	const LBOUND_FUNC& _lbound;
+	const UBOUND_FUNC& _ubound;
+	const STOP_CRITERIA& _stop_criteria;
+	const COST_FUNCTION& _cost_function;
+	std::vector<Cat*> _allCats;
+	const double _mixtureRatio ; 
+		
+
+	double _bestFitness;
+	TVector* _bestPosition;
+	const size_t _SMP; // Seeking Memory Pool
+    const double _SRD; // Seeking Range Dimension
+    const double _CDC; // Counts of Dimension to Change
+    size_t _nbIteration;
+    double _c1;
+    
+
+
+      public:
+
+
+      CSO(
+      	const size_t nbCats,
+      	const size_t dimension,
+      	const LBOUND_FUNC &lbound,
+      	const UBOUND_FUNC &ubound, 
+	    const STOP_CRITERIA &stop_criteria,
+	    const COST_FUNCTION &cost_function)
+
+      : popot::algorithm::Base(),
+		_nbCats(nbCats),
+		_dimension(dimension),
+		_lbound(lbound),
+		_ubound(ubound),
+	  	_stop_criteria(stop_criteria),
+	  	_cost_function(cost_function),
+	  	//TO DO : ajouter le self consideration 
+	  	_mixtureRatio(0.2), 
+	  	_SMP(5),
+	  	_SRD(0.02),
+	  	_CDC(0.8),
+	  	_c1( 2.05),
+	  	_nbIteration(0) 
+	  	{
+	  	  _bestPosition = new TVector(_dimension);	
+		  init(); 
+		}
+
+	~CSO() {
+	  // Bien désallouer la mémoire des trucs alloués par new
+		for(auto& catPtr : _allCats)
+	    delete catPtr;
+	  _allCats.clear();
+	  delete _bestPosition;
+
+	}
+
+	void init(void)  {
+
+	  // Clear memory
+		for(auto& catPtr: _allCats)
+	    delete catPtr;
+	  _allCats.clear();
+	  _nbIteration =0;
+	  
+
+	  // Allocate the cats
+	  for( size_t i=0; i<_nbCats ; i++)
+	    _allCats.push_back(new Cat(_dimension));
+
+	  for(size_t i = 0; i < _nbCats; i++)
+	    _allCats[i]->init(_lbound, _ubound, _cost_function);
+	  findBestFitness();
+	  
+	}
+
+
+	bool stop(void) {
+	  return _stop_criteria(getBestFitness(), _nbIteration) ;
+	}
+
+	void step(void){
+		//Répartit les chats entre seeking mode et tracing mode
+		for (int i=0; i<_allCats.size(); i++)
+		chooseCatsMode();
+		findBestFitness();
+		for ( int i =0; i<_nbCats ; i++){
+			if( _allCats[i]->getSeekingMode()){
+				seekingMode(i);
+			}
+			else {
+				tracingMode(i);
+			}
+		}
+
+	}
+
+
+	//Fonction répartissant les chats entre seeking et tracing mode
+	void chooseCatsMode(){
+		size_t nbCatsTracing = (size_t) (_nbCats * _mixtureRatio);
+		for ( int i =0; i<_nbCats ; i++ ){
+			_allCats[i]->setSeekingMode(true);
+		} 
+
+		for ( int i = 0; i< nbCatsTracing; i++){
+			size_t indice = ( size_t) popot::math::uniform_random(0 , _nbCats );
+			if ( _allCats[indice]->getSeekingMode() ){
+				_allCats[indice]->setSeekingMode(false);
+			}
+			else { 
+				i--;	
+			}
+		}
+	}
+
+
+	//fonction qui met à jour la position d'un chat qui est en seeking mode
+	void seekingMode(size_t i){
+		Cat* copies[_SMP];
+		const size_t nbDimensionToChange = (size_t) _dimension*_CDC;
+		double fitnesses[_SMP];
+		double somme = 0;
+		for ( size_t j=0; j<_SMP ; j++){
+			copies[j] = new Cat( *_allCats[i]);
+			std::vector<int> indicesToChange;
+			indicesToChange = randomDimensions(indicesToChange , nbDimensionToChange); 
+			for ( int k = 0; k < indicesToChange.size()-1; k++){
+				size_t theIndice = indicesToChange[k+1];
+				(*copies[j])[theIndice]= ((*copies[j])[theIndice]) + _SRD * popot::math::uniform_random(_lbound(theIndice),_ubound(theIndice));
+				if ( (*copies[j])[theIndice] > _ubound(theIndice))
+					(*copies[j])[theIndice] = _ubound(theIndice);
+				else if ( (*copies[j])[theIndice] < _lbound(theIndice))
+					(*copies[j])[theIndice] = _lbound(theIndice);
+				(*copies[j]).computeFitness(_cost_function);
+				fitnesses[j] = (*copies[j]).getFitness();				
+			}
+
+		}
+		
+		double fitnessMax = *std::max_element(fitnesses,fitnesses+(sizeof(fitnesses)));
+		double fitnessMin = *std::min_element(fitnesses,fitnesses+(sizeof(fitnesses)));
+		double probabilities[_SMP];
+		for ( size_t j=0; j<_SMP ; j++){
+			probabilities[j] = (abs((fitnesses[j])-_bestFitness)/(_bestFitness-fitnessMin)) ;
+		}
+		// Attention somme des proba différente de 1 !
+		size_t indiceCopies = popot::math::random_from_array(probabilities);
+		if ( indiceCopies>_SMP-1) { indiceCopies = _SMP-1;}
+		_allCats[i] = copies[indiceCopies];
+		
+	}
+
+	//fonction qui met à jour la position d'un chat qui est en tracing mode
+	void tracingMode(size_t i){
+		double r1 = popot::math::uniform_random(0, _c1);
+		for(size_t j=0; j<_dimension; j++){
+			double valeur = (*_allCats[i]).getVelocities(j) + r1*((*_bestPosition)[j] - (*_allCats[i])[j] );
+			
+			(*_allCats[i]).setVelocities(j, valeur);
+			
+			(*_allCats[i])[j] = (*_allCats[i])[j] + (*_allCats[i]).getVelocities(j);
+
+		}
+	}	
+
+	//Fonction qui renvoie un tableau d'indices qui désignent les dimensions que l'on va modifier
+	std::vector<int> randomDimensions(std::vector<int> indices, size_t nbDimensionToChange){
+		for (size_t i =0; i<nbDimensionToChange; i++){
+			size_t a = (size_t) popot::math::uniform_random(0, _dimension);
+			bool isInArray = false;
+			size_t j = 0;
+			indices.push_back(-1);
+			while(j<=i && !isInArray){
+				isInArray = (indices[j] == a);
+				j++;
+				
+			}
+			
+
+			if ( !isInArray){
+				indices.push_back(a);
+			}
+			else {
+				j--; 
+			}
+		}
+		return indices;
+	}
+
+
+
+
+
+	//fonction permettant de trouver la meilleure fitness
+	void findBestFitness(){
+
+		// Collect the fitnesses in a collection of pairs to be sorted
+	  std::vector<std::pair<unsigned int, double>> fitnesses;
+	  for(unsigned int i = 0 ; i < _nbCats; ++i)
+	    fitnesses.push_back(std::make_pair(i, _allCats[i]->getFitness()));
+	 // Sort them by increasing fitness
+	  std::sort(fitnesses.begin(), fitnesses.end(),
+		    [](std::pair<unsigned int, double> a,
+		       std::pair<unsigned int, double> b) -> bool {
+		      return a.second <= b.second;});
+	 // Keep the 3 first best
+	  auto iter = fitnesses.begin();
+	  Cat *_bestCat = new Cat(_dimension);
+	  _bestCat= ((_allCats)[(iter++)->first]);
+	  for ( size_t i=0; i<_dimension; i++){
+	  	double b = (*_bestCat)[i];
+	  	(*_bestPosition)[i] = b;
+	   }
+	  _bestFitness = _bestCat->getFitness();
+	  
+
+	}
+
+	
+
+	void run(int verbose=0) {
+	  while(!stop()) 
+	      step();
+	}
+
+	double getBestFitness() const {
+	  return _bestFitness;
+	}
+
+	void fillBestPosition(double * position) {}
+
+	
+	void print(int mode) {}
+	
+	
+
+
+
+      }; //CSO
+    }// algorithm
+  }//CSO
+
+
+
   namespace ABC
   {
     namespace algorithm
@@ -860,6 +1293,30 @@ namespace popot
 	      const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound,
 	      const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
       return new popot::harmony::algorithm::Harmony<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(dimension, lbound, ubound, stop, func);
+    }
+
+
+    
+    /**
+     * GWO algorithm
+     **/
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      popot::GWO::algorithm::GWO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>*
+      gwo(size_t nbLoups, size_t dimension,
+	  const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound, const size_t nb_max_iterations,
+	  const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
+	  return new popot::GWO::algorithm::GWO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(nbLoups, dimension, lbound, ubound, nb_max_iterations,  stop, func);
+    }
+
+
+     /**
+     * CSO algorithm
+     **/
+    template< typename LBOUND_FUNC, typename UBOUND_FUNC, typename STOP_CRITERIA, typename COST_FUNCTION>
+      popot::CSO::algorithm::CSO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>*
+      cso(size_t nbCats, size_t dimension,
+	  const LBOUND_FUNC& lbound, const UBOUND_FUNC& ubound, const STOP_CRITERIA& stop, const COST_FUNCTION& func) {
+      return new popot::CSO::algorithm::CSO<LBOUND_FUNC, UBOUND_FUNC, STOP_CRITERIA, COST_FUNCTION>(nbCats, dimension, lbound, ubound, stop, func);
     }
 
 
