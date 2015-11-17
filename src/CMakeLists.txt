@@ -40,7 +40,7 @@ include_directories(${PYTHON_INCLUDE_DIRS})
 add_library(
   PyPopot
   SHARED
-  wrapper.cpp ${headers_files}
+  wrapper.cpp rng_generators.cpp ${headers_files}
 )
 set_target_properties(PyPopot PROPERTIES LINKER_LANGUAGE CXX)
 set_target_properties(PyPopot PROPERTIES COMPILE_FLAGS "${PROJECT_ALL_CFLAGS}" LINK_FLAGS "${PROJECT_ALL_DEP_LDFLAGS}")

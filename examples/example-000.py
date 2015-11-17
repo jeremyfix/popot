@@ -33,13 +33,13 @@ def evaluate(param):
     return fit
 
 #Initialize libPyPopot
-algo = libPyPopot.Stochastic_PSO_2006(dimension, lbound, ubound, stop, evaluate)
+algo = libPyPopot.SPSO_2006(dimension, lbound, ubound, stop, evaluate)
 
 #Run until the stop criterion is met
 algo.run(0)
 print("Stop after {epoch} steps".format(epoch = algo.getEpoch()))
 print("Best fitness : {fitness}".format(fitness = algo.bestFitness()))
-print("Best solution : {sol}".format(sol = algo.bestParticule()))
+print("Best solution : {sol}".format(sol = algo.bestParticle()))
 
 # #Restart the PSO
 # algo = libPyPopot.Stochastic_PSO_2006(dimension, lbound, ubound, stop, evaluate)
