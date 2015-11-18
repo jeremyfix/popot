@@ -102,6 +102,20 @@ public:
     COST_FUNCTION cost;
     algo_type* algo;
 
+  Wrapper_SPSO_2006(size_t swarm_size, size_t dim, const boost::python::object& lbound_func, const boost::python::object& ubound_func, const boost::python::object& stop_func, const boost::python::object& cost_func) :
+    nbDim(dim),
+    lbound(LBOUND_FUNC(lbound_func)),
+    ubound(UBOUND_FUNC(ubound_func)),
+    stop(STOP_CRITERIA(stop_func)),
+    cost(COST_FUNCTION(cost_func, nbDim)),
+    algo(popot::algorithm::spso2006(swarm_size,
+    nbDim, 
+    lbound, 
+    ubound, 
+    stop, 
+    cost))
+    {}
+
     Wrapper_SPSO_2006(size_t dim, const boost::python::object& lbound_func, const boost::python::object& ubound_func, const boost::python::object& stop_func, const boost::python::object& cost_func) :
     nbDim(dim),
     lbound(LBOUND_FUNC(lbound_func)),
@@ -221,6 +235,7 @@ BOOST_PYTHON_MODULE(libPyPopot) {
     def("seed", seed, (boost::python::arg("seed")));
 
     class_<Wrapper_SPSO_2006 > ("SPSO_2006", init< size_t, boost::python::object, boost::python::object, boost::python::object, boost::python::object > ((boost::python::arg("nbDim"), boost::python::arg("lbound"), boost::python::arg("ubound"), boost::python::arg("stop"), boost::python::arg("cost"))))
+      .def(init<size_t,size_t, boost::python::object, boost::python::object, boost::python::object, boost::python::object > ((boost::python::arg("swarm_size"), boost::python::arg("nbDim"), boost::python::arg("lbound"), boost::python::arg("ubound"), boost::python::arg("stop"), boost::python::arg("cost"))))
         .def("bestFitness", &Wrapper_SPSO_2006::bestFitness)
         .def("bestParticle", &Wrapper_SPSO_2006::bestParticle)
         .def("getEpoch", &Wrapper_SPSO_2006::getEpoch)
