@@ -1,0 +1,75 @@
+===============================================================================
+                      Popot : C++ POPulation based Optimization Toolbox
+                                 (c) Jeremy Fix 2011-2013
+===============================================================================
+
+Popot is a C++ library implementing various population based
+optimization algorithms. It is provided with several examples.
+
+
+I/ Installation
+---------------
+
+Please read INSTALL.
+
+II/ Documentation
+-----------------
+
+The documentation is available from the doc/ directory.
+The doxygen documentation is also available online on the github repository.
+
+III/ How to contribute
+----------------------
+
+Sending feedbacks on bugs/improvements
+Suggesting/Implementing new algorithms, ..
+
+IV/ Changes
+----------------------
+
+2.13
+- minor changes in the licenses in the source files
+- a bug in the example : it looks like giving the lambda functions from which const ref are taken in the construct
+ors of the algorithm leads to weird issues in memory;
+
+
+2.11
+- minor bug correction (reset epoch and nb_new_neigh when calling pso_algorithm.init())
+
+2.10
+- a python wrapper is not available, thanks to H. Glaude
+
+2.00
+- major modifications in the way to define algorithms. Especially to avoid
+  the requirement that the problem dimension, evalaute, etc... are known at compile time
+  They now just need to be known at execution time and you can, for example, import a problem 
+  from a text file
+
+1.21
+- Some corrections on unsigned int/int revealed with -Wall
+- Forgot to return the particle in BaseParticle::operator=
+- Update of the Doxygen layout to work with Doxygen 1.7.5
+
+
+1.20
+- Removed the Halton sequence
+- Added the Mersenne 64 bits generator
+- Corrected few bugs on copy constructors
+- Changed some pointers to references in return
+- Added a possibility to be extremely verbose verbose (see the define
+  VERBOSE_BENCH in popot.h)
+
+I checked the behavior of popot::SPSO2011 and it is identical to the
+swarm central SPSO. There is indeed a divergence between the two codes
+after some, say, hundreds or thousands of iterations. This is mainly
+when deciding if new neighborhoods should be generated. In the SPSO C
+code, a very small improvement is still considered as an improvement
+while in the C++ code it takes it to be 0 and produces a new
+neighborhood. This very small numerical difference may actually lead
+to considerable differences in the performances (indeed in the number
+of generated neighborhoods)
+
+1.10
+- Added StochasticSPSO2011, StochasticSPSO2006
+- The local best within the neighborhoods are recomputed at each step
+- The best of the best is now defined as the best of the personal best
