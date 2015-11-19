@@ -36,6 +36,8 @@ install (FILES ${headers_files}
 	 COMPONENT devel)
 
 # Define the library for the python wrapper
+execute_process ( COMMAND python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()" OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 include_directories(${PYTHON_INCLUDE_DIRS})
 add_library(
   PyPopot
