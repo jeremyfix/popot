@@ -8,7 +8,7 @@ SET(PACKAGE_LICENSE "GPL")
 
 SET(CMAKE_BUILD_TYPE Release)
 
-SET(PROJECT_DESCRIPTION_SUMMARY "POPulation based OpTimization Toolbox")
+SET(PROJECT_DESCRIPTION_SUMMARY "POPulation based OpTimization")
 
 #######################################
 # Get the libs/inc for the dependencies
@@ -17,11 +17,7 @@ SET(PROJECT_DESCRIPTION_SUMMARY "POPulation based OpTimization Toolbox")
 find_package(PkgConfig)
 
 pkg_check_modules(PYTHON python REQUIRED)
-# In order to get the path to the site-packages dir to install the wrapper
-execute_process ( COMMAND python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()" OUTPUT_VARIABLE PYTHON_SITE_PACKAGES OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-
-pkg_check_modules(JSONCPP jsoncpp REQUIRED)
+pkg_check_modules(JSON jsoncpp REQUIRED)
 
 set(PKG_CONFIG_DEPENDS "python jsoncpp")
 
@@ -30,30 +26,30 @@ set(PKG_CONFIG_DEPENDS "python jsoncpp")
 #######################################
 
 # cflags added by the package
-SET(PROJECT_CFLAGS "-std=c++11")
+SET(PROJECT_CFLAGS "-std=c++0x")
 
 # cflags added by the pkg-config dependencies contains ';' as separator. This is a fix.
 string(REPLACE ";" " " PYTHON_CFLAGS "${PYTHON_CFLAGS}")
-string(REPLACE ";" " " JSONCPP_CFLAGS "${JSONCPP_CFLAGS}")
+string(REPLACE ";" " " JSON_CFLAGS "${JSON_CFLAGS}")
 
 # lib flags added by the package
 SET(PROJECT_LIBS "-Wl,--no-as-needed -lpopot")
 
 # libs added by the pkg-config dependencies contains ';' as separator. This is a fix.
 string(REPLACE ";" " " PYTHON_LDFLAGS "${PYTHON_LDFLAGS}")
-string(REPLACE ";" " " JSONCPP_LDFLAGS "${JSONCPP_LDFLAGS}")
+string(REPLACE ";" " " JSON_LDFLAGS "${JSON_LDFLAGS}")
 
 # ldflags required, but not provided by pkg-config
 SET(PROJECT_LDFLAGS "")
 
 # Gathering of all flags
 # (e.g. for compiling examples)
-SET(PROJECT_ALL_CFLAGS  "${PROJECT_CFLAGS} ${PYTHON_CFLAGS} ${JSONCPP_CFLAGS}")
-SET(PROJECT_ALL_LDFLAGS "${PROJECT_LIBS} ${PROJECT_LDFLAGS} -L${CMAKE_BINARY_DIR}/src ${PYTHON_LDFLAGS} ${JSONCPP_LDFLAGS}")
+SET(PROJECT_ALL_CFLAGS  "${PROJECT_CFLAGS} ${PYTHON_CFLAGS} ${JSON_CFLAGS}")
+SET(PROJECT_ALL_LDFLAGS "${PROJECT_LIBS} ${PROJECT_LDFLAGS} -L${CMAKE_BINARY_DIR}/src ${PYTHON_LDFLAGS} ${JSON_LDFLAGS}")
 
 # Gathering of all flags from dependancies flags
 # (e.g. for compiling libraries)
-SET(PROJECT_ALL_DEP_LDFLAGS "${PROJECT_LDFLAGS} ${PYTHON_LDFLAGS} ${JSONCPP_LDFLAGS}")
+SET(PROJECT_ALL_DEP_LDFLAGS "${PROJECT_LDFLAGS} ${PYTHON_LDFLAGS} ${JSON_LDFLAGS}")
 
 ###################################
 # Some prefix definitions
@@ -121,12 +117,12 @@ ADD_CUSTOM_TARGET(dist
 
 SET(CPACK_PACKAGE_DESCRIPTION_SUMMARY ${PROJECT_DESCRIPTION_SUMMARY})
 SET(CPACK_PACKAGE_VENDOR "Jeremy Fix")
-SET(CPACK_PACKAGE_CONTACT "Jeremy.Fix@centralesupelec.fr")
+SET(CPACK_PACKAGE_CONTACT "Jeremy.Fix@Supelec.fr")
 SET(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION})
 SET(CPACK_PACKAGE_LICENSE "${PACKAGE_LICENSE}")
 SET(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE)
-SET(CPACK_RESOURCE_FILE_README ${CMAKE_SOURCE_DIR}/README.md)
-SET(CPACK_RESOURCE_FILE_WELCOME ${CMAKE_SOURCE_DIR}/README.md)
+SET(CPACK_RESOURCE_FILE_README ${CMAKE_SOURCE_DIR}/README)
+SET(CPACK_RESOURCE_FILE_WELCOME ${CMAKE_SOURCE_DIR}/README)
 SET(CPACK_RESOURCE_FILE_INSTALL ${CMAKE_SOURCE_DIR}/INSTALL)
 
 IF(MYBUILDTYPE STREQUAL "binary")
@@ -200,12 +196,12 @@ IF(NOT DPKGDEB STREQUAL  "DPKGDEB-NOTFOUND")
   ENDIF()
 
   IF(MYBUILDTYPE STREQUAL "binary")
-    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "python, jsoncpp")
+    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "python, libjsoncpp0")
   ENDIF()
 
   IF(MYBUILDTYPE STREQUAL "devel")
     SET(CPACK_DEBIAN_PACKAGE_NAME ${CMAKE_PROJECT_NAME}-dev)
-    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "python-dev, jsoncpp-dev, ${CMAKE_PROJECT_NAME}")
+    SET(CPACK_DEBIAN_PACKAGE_DEPENDS "python-dev, libjsoncpp-dev, ${CMAKE_PROJECT_NAME}")
   ENDIF()
 
   SET(CPACK_PACKAGE_FILE_NAME ${CPACK_DEBIAN_PACKAGE_NAME}-${PACKAGE_VERSION}-${CMAKE_SYSTEM_PROCESSOR})
