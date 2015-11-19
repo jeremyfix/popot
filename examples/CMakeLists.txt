@@ -34,9 +34,10 @@ endforeach(f)
 # Define the examples for the wrapper
 
 foreach(f ${pyusage_examples})
-    configure_file(${f} ${CMAKE_CURRENT_BINARY_DIR}/${f} COPYONLY)
-    install(FILES ${CMAKE_BINARY_DIR}/examples/${f}
+    get_filename_component(fname ${f} NAME) 
+    configure_file(${fname} ${CMAKE_CURRENT_BINARY_DIR}/${fname} COPYONLY)
+    install(FILES ${fname}
             DESTINATION bin
-            RENAME ${CMAKE_PROJECT_NAME}-${f}
+            RENAME ${CMAKE_PROJECT_NAME}-${fname}
 	    COMPONENT binary)
 endforeach(f) 
